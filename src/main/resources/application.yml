@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: workforce-os
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  port: 8080
+
+workforce:
+  auth:
+    signing-key: ${WORKFORCE_AUTH_SIGNING_KEY:workforce-os-development-signing-key-change-me}
+    admin-username: ${WORKFORCE_AUTH_ADMIN_USERNAME:admin}
+    admin-password: ${WORKFORCE_AUTH_ADMIN_PASSWORD:admin}
