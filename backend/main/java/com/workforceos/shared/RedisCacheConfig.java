@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workforceos.dashboard.DashboardSummary;
 import com.workforceos.scheduling.AttendanceReport;
 import com.workforceos.scheduling.AuditLogSummary;
 import com.workforceos.scheduling.LeaveRequestReport;
@@ -53,6 +54,7 @@ class RedisCacheConfig {
         perCache.put("overtime-request-report", objectConfig(objectMapper, OvertimeRequestReport.class));
         perCache.put("attendance-report", objectConfig(objectMapper, AttendanceReport.class));
         perCache.put("audit-log-summary", objectConfig(objectMapper, AuditLogSummary.class));
+        perCache.put("dashboard-summary", objectConfig(objectMapper, DashboardSummary.class));
 
         return builder -> builder
                 .cacheDefaults(baseConfig())

@@ -3,8 +3,89 @@
     <span class="home__brand">WorkforceOS</span>
     <button type="button" class="home__logout" (click)="logout()">Sign out</button>
   </header>
-  <main class="home__content">
-    <h1>You're signed in.</h1>
-    <p>The roster, attendance, and leave workspaces live here next.</p>
+
+  <main class="home__content" *ngIf="loading">
+    <p class="home__status">Loading dashboard…</p>
+  </main>
+
+  <main class="home__content" *ngIf="!loading && errorMessage">
+    <p class="home__status home__status--error">{{ errorMessage }}</p>
+  </main>
+
+  <main class="home__dashboard" *ngIf="!loading && summary as summary">
+    <h1 class="home__title">Workforce overview</h1>
+
+    <section class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-card__value">{{ summary.totalEmployees }}</span>
+        <span class="stat-card__label">Total employees</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{{ summary.activeEmployees }}</span>
+        <span class="stat-card__label">Active employees</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{{ summary.totalDepartments }}</span>
+        <span class="stat-card__label">Departments</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{{ summary.totalTeams }}</span>
+        <span class="stat-card__label">Teams</span>
+      </div>
+      <div class="stat-card stat-card--amber">
+        <span class="stat-card__value">{{ summary.pendingLeaveRequests }}</span>
+        <span class="stat-card__label">Pending leave requests</span>
+      </div>
+      <div class="stat-card stat-card--amber">
+        <span class="stat-card__value">{{ summary.pendingOvertimeRequests }}</span>
+        <span class="stat-card__label">Pending overtime requests</span>
+      </div>
+    </section>
+
+    <section class="panel-grid">
+      <div class="panel">
+        <h2 class="panel__title">Headcount by department</h2>
+        <div class="dept-bar" *ngFor="let dept of summary.departmentBreakdown">
+          <span class="dept-bar__label">{{ dept.departmentName }}</span>
+          <div class="dept-bar__track">
+            <div class="dept-bar__fill" [style.width.%]="departmentBarWidth(dept.employeeCount)"></div>
+          </div>
+          <span class="dept-bar__count">{{ dept.employeeCount }}</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel__title">Recently added employees</h2>
+        <table class="employee-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Team</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let employee of summary.recentEmployees">
+              <td>
+                <span class="employee-table__name">{{ employee.firstName }} {{ employee.lastName }}</span>
+                <span class="employee-table__number">{{ employee.employeeNumber }}</span>
+              </td>
+              <td>{{ employee.departmentName }}</td>
+              <td>{{ employee.teamName }}</td>
+              <td>
+                <span
+                  class="badge"
+                  [class.badge--active]="employee.active"
+                  [class.badge--inactive]="!employee.active"
+                >
+                  {{ employee.active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </div>
