@@ -1,0 +1,84 @@
+package com.workforceos.scheduling;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+public class AttendanceCorrectionService {
+
+    private final ConcurrentMap<UUID, AttendanceCorrection> attendanceCorrections = new ConcurrentHashMap<>();
+
+    public List<AttendanceCorrection> findAll() {
+        return attendanceCorrections.values().stream().toList();
+    }
+
+    public AttendanceCorrection create(AttendanceCorrectionRequest request) {
+        validateRequest(request);
+
+        AttendanceCorrection attendanceCorrection = new AttendanceCorrection(
+                UUID.randomUUID(),
+                request.employeeId(),
+                request.attendanceId(),
+                request.type(),
+                request.details().trim(),
+                AttendanceCorrectionStatus.PENDING);
+
+        attendanceCorrections.put(attendanceCorrection.id(), attendanceCorrection);
+        return attendanceCorrection;
+    }
+
+    public AttendanceCorrection approve(UUID id) {
+        AttendanceCorrection attendanceCorrection = findById(id);
+        AttendanceCorrection approved = new AttendanceCorrection(
+                attendanceCorrection.id(),
+                attendanceCorrection.employeeId(),
+                attendanceCorrection.attendanceId(),
+                attendanceCorrection.type(),
+                attendanceCorrection.details(),
+                AttendanceCorrectionStatus.APPROVED);
+        attendanceCorrections.put(id, approved);
+        return approved;
+    }
+
+    public AttendanceCorrection reject(UUID id) {
+        AttendanceCorrection attendanceCorrection = findById(id);
+        AttendanceCorrection rejected = new AttendanceCorrection(
+                attendanceCorrection.id(),
+                attendanceCorrection.employeeId(),
+                attendanceCorrection.attendanceId(),
+                attendanceCorrection.type(),
+                attendanceCorrection.details(),
+                AttendanceCorrectionStatus.REJECTED);
+        attendanceCorrections.put(id, rejected);
+        return rejected;
+    }
+
+    public AttendanceCorrection findById(UUID id) {
+        AttendanceCorrection attendanceCorrection = attendanceCorrections.get(id);
+        if (attendanceCorrection == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Attendance correction not found");
+        }
+        return attendanceCorrection;
+    }
+
+    private void validateRequest(AttendanceCorrectionRequest request) {
+        if (request == null
+                || request.employeeId() == null
+                || request.attendanceId() == null
+                || request.type() == null
+                || isBlank(request.details())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Employee, attendance, type, and details are required");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+}
