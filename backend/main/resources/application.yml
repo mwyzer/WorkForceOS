@@ -1,6 +1,23 @@
 spring:
   application:
     name: workforce-os
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:workforceos}
+    username: ${DB_USERNAME:workforceos}
+    password: ${DB_PASSWORD:workforceos}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
 
 management:
   endpoints:

@@ -2,20 +2,28 @@
 
 WorkforceOS is an enterprise REST API platform for organizations with shift-based employees. It centralizes workforce scheduling, attendance, leave, overtime, shift handover, approvals, notifications, auditing, and reporting in one auditable backend.
 
-> **Status:** Draft product definition. The requirements documents describe the intended MVP and architecture; implementation setup is not yet defined.
+> **Status:** Active development. The backend implements most of the P0 MVP scope from the PRD against in-memory storage; PostgreSQL persistence, the Angular frontend, and P1 capabilities are still in progress.
 
 ## Implementation Status
 
-The initial Spring Boot foundation has been started from the PRD:
+The backend (`backend/`) is a Spring Boot 3 / Java 21 modular monolith with the following implemented:
 
-- Java 21 and Spring Boot 3 Maven project
-- Shared application bootstrap package
+- JWT authentication (`/api/v1/auth/login`) and bearer-token security filter
+- Workforce management: employees, departments, teams
+- Scheduling: shift templates, rosters, roster assignments, roster publishing
+- Attendance: clock in/out, attendance corrections
+- Requests and approvals: leave requests, overtime requests, shift swap requests
+- Shift handover: create, submit, acknowledge
+- Notifications, audit logging, and operational reports
 - `GET /api/v1/health` service health endpoint
-- Spring Boot smoke test for the health endpoint
 
-The domain modules and PostgreSQL persistence will be implemented incrementally according to the [roadmap](docs/ROADMAP.md).
+Domain data currently lives in in-memory repositories. PostgreSQL persistence, Redis caching, Kafka-based events, and the remaining P1/P2 scope are tracked in the [roadmap](docs/ROADMAP.md).
+
+The frontend (`frontend/`) is an Angular 16 project currently at initial scaffold state; application features have not been built yet.
 
 ## Run Locally
+
+### Backend
 
 Prerequisites: Java 21 and Maven 3.9 or later.
 
@@ -33,11 +41,33 @@ mvn spring-boot:run
 
 Then check `http://localhost:8080/api/v1/health`.
 
-Run the smoke test with:
+Run the tests with:
 
 ```bash
 mvn test
 ```
+
+### Frontend
+
+Prerequisites: Node.js and npm.
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Then open `http://localhost:4200/`.
+
+### Docker
+
+Prerequisites: Docker.
+
+```bash
+docker compose up --build
+```
+
+This builds and runs the backend (`http://localhost:8080`) and the frontend (`http://localhost:4200`, proxying `/api` requests to the backend). Override the auth environment variables from the section above via a `.env` file or your shell before running `docker compose up`.
 
 ## Product Vision
 
@@ -139,15 +169,28 @@ Representative endpoints include:
 POST /api/v1/auth/login
 GET  /api/v1/employees
 POST /api/v1/employees
+GET  /api/v1/departments
+GET  /api/v1/teams
 GET  /api/v1/shifts
 POST /api/v1/rosters
 POST /api/v1/rosters/{id}/publish
+POST /api/v1/rosters/{id}/assignments
 POST /api/v1/attendance/clock-in
 POST /api/v1/attendance/clock-out
+POST /api/v1/attendance-corrections
+POST /api/v1/attendance-corrections/{id}/approve
 POST /api/v1/leave-requests
 POST /api/v1/leave-requests/{id}/approve
 POST /api/v1/overtime-requests
+POST /api/v1/overtime-requests/{id}/approve
+POST /api/v1/shift-swap-requests
+POST /api/v1/shift-swap-requests/{id}/approve
+POST /api/v1/handovers
+POST /api/v1/handovers/{id}/submit
 POST /api/v1/handovers/{id}/acknowledge
+GET  /api/v1/audit-logs
+POST /api/v1/notifications
+GET  /api/v1/reports/*
 ```
 
 Authenticate first:
@@ -159,18 +202,18 @@ Content-Type: application/json
 {"username":"admin","password":"admin"}
 ```
 
-Use the returned `accessToken` as a bearer token for protected endpoints. The current implementation uses in-memory users and a development signing-key fallback; production deployments must provide the environment variables above and replace in-memory identity storage with PostgreSQL-backed users.
+Use the returned `accessToken` as a bearer token for protected endpoints. The current implementation uses in-memory users and domain data with a development signing-key fallback; production deployments must provide the environment variables above and replace in-memory storage with PostgreSQL-backed persistence.
 
 Errors should use a consistent structure containing a timestamp, HTTP status, application error code, message, and request path.
 
-## Planned Architecture
+## Architecture
 
-The first release is planned as a modular monolith using:
+The backend is a modular monolith using:
 
 - Java 21
 - Spring Boot 3
-- PostgreSQL
 - Spring Security with JWT
+- In-memory repositories (PostgreSQL persistence is planned, not yet wired up)
 
 The application should use transactional application services and publish domain events for important operations, including attendance, roster publication, request decisions, and handover acknowledgement. Redis caching and Kafka-based event processing are planned as P1 capabilities.
 

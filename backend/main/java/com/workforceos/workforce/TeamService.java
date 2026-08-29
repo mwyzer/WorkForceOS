@@ -2,9 +2,10 @@ package com.workforceos.workforce;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,38 +15,45 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class TeamService {
 
-    private final ConcurrentMap<UUID, Team> teams = new ConcurrentHashMap<>();
+    private final TeamRepository teamRepository;
     private final DepartmentService departmentService;
 
-    public TeamService(DepartmentService departmentService) {
+    public TeamService(TeamRepository teamRepository, DepartmentService departmentService) {
+        this.teamRepository = teamRepository;
         this.departmentService = departmentService;
     }
 
+    @Cacheable("teams")
     public List<Team> findAll() {
-        return teams.values().stream().toList();
+        return teamRepository.findAll().stream().map(TeamEntity::toRecord).toList();
     }
 
+    @Cacheable(value = "team", key = "#id")
     public Team findById(UUID id) {
-        Team team = teams.get(id);
-        if (team == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found");
-        }
-        return team;
+        return teamRepository.findById(id)
+                .map(TeamEntity::toRecord)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
     }
 
+    @CacheEvict(value = "teams", allEntries = true)
     public Team create(TeamRequest request) {
         validate(request);
 
-        Team team = new Team(UUID.randomUUID(), request.departmentId(), request.name().trim(), true);
-        teams.put(team.id(), team);
-        return team;
+        TeamEntity team = new TeamEntity(UUID.randomUUID(), request.departmentId(), request.name().trim(), true);
+        teamRepository.save(team);
+        return team.toRecord();
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "teams", allEntries = true),
+            @CacheEvict(value = "team", key = "#id")
+    })
     public Team deactivate(UUID id) {
-        Team team = findById(id);
-        Team deactivated = new Team(team.id(), team.departmentId(), team.name(), false);
-        teams.put(id, deactivated);
-        return deactivated;
+        TeamEntity team = teamRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
+        team.deactivate();
+        teamRepository.save(team);
+        return team.toRecord();
     }
 
     private void validate(TeamRequest request) {

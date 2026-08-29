@@ -1,0 +1,64 @@
+<div class="login-page">
+  <section class="brand-panel">
+    <div class="brand-panel__content">
+      <div class="wordmark">
+        <span class="wordmark__mark">WF</span>
+        <span class="wordmark__text">WorkforceOS</span>
+      </div>
+
+      <div class="shift-clock" aria-hidden="true">
+        <span class="shift-clock__time">{{ now | date: 'HH:mm:ss' }}</span>
+        <span class="shift-clock__date">{{ now | date: 'EEEE, d MMMM y' }}</span>
+      </div>
+
+      <p class="brand-panel__tagline">Every shift, accounted for.</p>
+      <p class="brand-panel__sub">
+        Rosters, attendance, and time off — one clock for the whole floor.
+      </p>
+    </div>
+  </section>
+
+  <section class="form-panel">
+    <form class="login-card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <h1 class="login-card__title">Sign in</h1>
+      <p class="login-card__subtitle">Use your WorkforceOS account to continue.</p>
+
+      <div class="field">
+        <label for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+          [class.field__input--invalid]="username.invalid && username.touched"
+          class="field__input"
+        />
+        <span class="field__error" *ngIf="username.invalid && username.touched">
+          Enter your username.
+        </span>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          [class.field__input--invalid]="password.invalid && password.touched"
+          class="field__input"
+        />
+        <span class="field__error" *ngIf="password.invalid && password.touched">
+          Enter your password.
+        </span>
+      </div>
+
+      <p class="form-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
+
+      <button type="submit" class="submit-btn" [disabled]="submitting">
+        <span *ngIf="!submitting">Sign in</span>
+        <span *ngIf="submitting">Signing in…</span>
+      </button>
+    </form>
+  </section>
+</div>

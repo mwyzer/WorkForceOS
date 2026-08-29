@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import com.workforceos.workforce.LeaveRequest;
@@ -36,6 +37,7 @@ public class ReportService {
         this.rosterService = rosterService;
     }
 
+    @Cacheable("leave-request-report")
     public LeaveRequestReport getLeaveRequestReport() {
         Map<LeaveRequestStatus, Long> counts = leaveRequestService.findAll().stream()
                 .collect(Collectors.groupingBy(LeaveRequest::status, Collectors.counting()));
@@ -46,6 +48,7 @@ public class ReportService {
                 counts.getOrDefault(LeaveRequestStatus.REJECTED, 0L));
     }
 
+    @Cacheable("overtime-request-report")
     public OvertimeRequestReport getOvertimeRequestReport() {
         List<OvertimeRequest> allRequests = overtimeRequestService.findAll();
         Map<OvertimeRequestStatus, Long> counts = allRequests.stream()
@@ -60,6 +63,7 @@ public class ReportService {
                 totalHours);
     }
 
+    @Cacheable("attendance-report")
     public AttendanceReport getAttendanceReport() {
         List<AttendanceSession> sessions = attendanceService.findAllSessions();
         List<RosterAssignment> assignments = rosterService.findAllAssignments();
@@ -109,6 +113,7 @@ public class ReportService {
                 && session.shiftTemplateId().equals(assignment.shiftTemplateId());
     }
 
+    @Cacheable("audit-log-summary")
     public AuditLogSummary getAuditLogSummary() {
         List<AuditLog> allLogs = auditLogService.findAll();
 

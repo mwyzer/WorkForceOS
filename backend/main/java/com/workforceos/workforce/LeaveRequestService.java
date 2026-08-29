@@ -3,9 +3,9 @@ package com.workforceos.workforce;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,16 +15,22 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class LeaveRequestService {
 
-    private final ConcurrentMap<UUID, LeaveRequest> leaveRequests = new ConcurrentHashMap<>();
+    private final LeaveRequestRepository leaveRequestRepository;
 
-    public List<LeaveRequest> findAll() {
-        return leaveRequests.values().stream().toList();
+    public LeaveRequestService(LeaveRequestRepository leaveRequestRepository) {
+        this.leaveRequestRepository = leaveRequestRepository;
     }
 
+    @Cacheable("leaveRequests")
+    public List<LeaveRequest> findAll() {
+        return leaveRequestRepository.findAll().stream().map(LeaveRequestEntity::toRecord).toList();
+    }
+
+    @CacheEvict(value = { "leaveRequests", "leave-request-report" }, allEntries = true)
     public LeaveRequest create(LeaveRequestRequest request) {
         validateRequest(request);
 
-        LeaveRequest leaveRequest = new LeaveRequest(
+        LeaveRequestEntity leaveRequest = new LeaveRequestEntity(
                 UUID.randomUUID(),
                 request.employeeId(),
                 request.startDate(),
@@ -32,32 +38,26 @@ public class LeaveRequestService {
                 request.reason().trim(),
                 LeaveRequestStatus.PENDING);
 
-        leaveRequests.put(leaveRequest.id(), leaveRequest);
-        return leaveRequest;
+        leaveRequestRepository.save(leaveRequest);
+        return leaveRequest.toRecord();
     }
 
+    @CacheEvict(value = { "leaveRequests", "leave-request-report" }, allEntries = true)
     public LeaveRequest approve(UUID id) {
-        LeaveRequest leaveRequest = findById(id);
-        if (leaveRequest.status() != LeaveRequestStatus.PENDING) {
+        LeaveRequestEntity leaveRequest = leaveRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));
+        if (leaveRequest.getStatus() != LeaveRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING leave requests can be approved");
         }
-        LeaveRequest approved = new LeaveRequest(
-                leaveRequest.id(),
-                leaveRequest.employeeId(),
-                leaveRequest.startDate(),
-                leaveRequest.endDate(),
-                leaveRequest.reason(),
-                LeaveRequestStatus.APPROVED);
-        leaveRequests.put(id, approved);
-        return approved;
+        leaveRequest.approve();
+        leaveRequestRepository.save(leaveRequest);
+        return leaveRequest.toRecord();
     }
 
     public LeaveRequest findById(UUID id) {
-        LeaveRequest leaveRequest = leaveRequests.get(id);
-        if (leaveRequest == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found");
-        }
-        return leaveRequest;
+        return leaveRequestRepository.findById(id)
+                .map(LeaveRequestEntity::toRecord)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));
     }
 
     private void validateRequest(LeaveRequestRequest request) {

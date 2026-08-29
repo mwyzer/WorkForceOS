@@ -5,7 +5,7 @@
 **Document Version:** 1.0
 **Status:** Draft
 **Product Type:** Full-stack workforce operations platform
-**Technology:** Angular frontend + Java 25 / Spring Boot 3 backend
+**Technology:** Angular frontend + Java 21 / Spring Boot 3 backend
 **Database:** PostgreSQL
 **Date:** August 2026
 
@@ -1248,7 +1248,7 @@ The system should demonstrate enterprise backend engineering practices using:
 
 ```text
 Angular
-Java 25
+Java 21
 Spring Boot 3
 Spring Security
 JPA / Hibernate

@@ -1,0 +1,232 @@
+:host {
+  --ink-950: #0b0f1a;
+  --ink-800: #1a2236;
+  --ink-700: #2a3350;
+  --paper: #f7f5ef;
+  --paper-line: #e1ddd0;
+  --ink-text: #1c2333;
+  --muted-on-dark: #8b93ad;
+  --muted-on-paper: #756f63;
+  --amber: #f5a623;
+  --amber-dark: #c97f0b;
+  --red: #d9463f;
+
+  display: block;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+}
+
+.brand-panel {
+  background: var(--ink-950);
+  background-image: radial-gradient(circle at 15% 20%, var(--ink-800), transparent 55%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 4rem 4rem;
+}
+
+.brand-panel__content {
+  max-width: 26rem;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 3.5rem;
+}
+
+.wordmark__mark {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--ink-700);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  color: var(--amber);
+}
+
+.wordmark__text {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: var(--muted-on-dark);
+  text-transform: uppercase;
+}
+
+.shift-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2.25rem;
+  border-bottom: 1px solid var(--ink-700);
+}
+
+.shift-clock__time {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 3.75rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--amber);
+  letter-spacing: 0.02em;
+}
+
+.shift-clock__date {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--muted-on-dark);
+  text-transform: uppercase;
+}
+
+.brand-panel__tagline {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 0 0 0.75rem;
+  color: #fff;
+}
+
+.brand-panel__sub {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--muted-on-dark);
+  margin: 0;
+}
+
+.form-panel {
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-card__title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--ink-text);
+  margin: 0 0 0.4rem;
+}
+
+.login-card__subtitle {
+  font-size: 0.9rem;
+  color: var(--muted-on-paper);
+  margin: 0 0 2rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
+}
+
+.field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-on-paper);
+  margin-bottom: 0.45rem;
+}
+
+.field__input {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.25);
+  }
+
+  &--invalid {
+    border-color: var(--red);
+  }
+}
+
+.field__error {
+  font-size: 0.8rem;
+  color: var(--red);
+  margin-top: 0.4rem;
+}
+
+.form-error {
+  font-size: 0.85rem;
+  color: var(--red);
+  background: rgba(217, 70, 63, 0.08);
+  border: 1px solid rgba(217, 70, 63, 0.25);
+  border-radius: 6px;
+  padding: 0.65rem 0.8rem;
+  margin: 0 0 1.25rem;
+}
+
+.submit-btn {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-950);
+  background: var(--amber);
+  border: none;
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--amber-dark);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ink-950);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 860px) {
+  .login-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .brand-panel {
+    padding: 2.5rem 1.75rem;
+  }
+
+  .shift-clock__time {
+    font-size: 2.75rem;
+  }
+
+  .brand-panel__content {
+    max-width: none;
+  }
+
+  .form-panel {
+    padding: 2rem 1.75rem 3rem;
+  }
+}

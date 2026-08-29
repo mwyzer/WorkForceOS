@@ -3,9 +3,7 @@ package com.workforceos.authentication;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -20,20 +18,28 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private final PasswordEncoder passwordEncoder;
-    private final Map<String, UserAccount> users = new ConcurrentHashMap<>();
+    private final UserAccountLookupService userAccountLookupService;
     private final byte[] signingKey;
 
     public AuthService(PasswordEncoder passwordEncoder,
+            UserAccountRepository userAccountRepository,
+            UserAccountLookupService userAccountLookupService,
             @Value("${workforce.auth.signing-key:workforce-os-development-signing-key-change-me}") String signingKey,
             @Value("${workforce.auth.admin-username:admin}") String adminUsername,
             @Value("${workforce.auth.admin-password:admin}") String adminPassword) {
         this.passwordEncoder = passwordEncoder;
+        this.userAccountLookupService = userAccountLookupService;
         this.signingKey = signingKey.getBytes(StandardCharsets.UTF_8);
-        users.put(adminUsername, new UserAccount(adminUsername, passwordEncoder.encode(adminPassword), Set.of("ADMIN"), true));
+        if (userAccountRepository.count() == 0) {
+            userAccountRepository.save(new UserAccountEntity(
+                    adminUsername, passwordEncoder.encode(adminPassword), Set.of("ADMIN"), true));
+        }
     }
 
     public String login(AuthLoginRequest request) {
-        UserAccount user = request == null || request.username() == null ? null : users.get(request.username());
+        UserAccount user = request == null || request.username() == null
+                ? null
+                : userAccountLookupService.findUser(request.username());
         if (user == null || !user.active() || request.password() == null
                 || !passwordEncoder.matches(request.password(), user.passwordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
@@ -55,7 +61,7 @@ public class AuthService {
             if (Long.parseLong(values[1]) < System.currentTimeMillis() / 1000) {
                 throw new IllegalArgumentException();
             }
-            UserAccount user = users.get(values[0]);
+            UserAccount user = userAccountLookupService.findUser(values[0]);
             if (user == null || !user.active()) {
                 throw new IllegalArgumentException();
             }

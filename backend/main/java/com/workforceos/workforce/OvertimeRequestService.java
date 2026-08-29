@@ -3,9 +3,9 @@ package com.workforceos.workforce;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,16 +15,22 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class OvertimeRequestService {
 
-    private final ConcurrentMap<UUID, OvertimeRequest> overtimeRequests = new ConcurrentHashMap<>();
+    private final OvertimeRequestRepository overtimeRequestRepository;
 
-    public List<OvertimeRequest> findAll() {
-        return overtimeRequests.values().stream().toList();
+    public OvertimeRequestService(OvertimeRequestRepository overtimeRequestRepository) {
+        this.overtimeRequestRepository = overtimeRequestRepository;
     }
 
+    @Cacheable("overtimeRequests")
+    public List<OvertimeRequest> findAll() {
+        return overtimeRequestRepository.findAll().stream().map(OvertimeRequestEntity::toRecord).toList();
+    }
+
+    @CacheEvict(value = { "overtimeRequests", "overtime-request-report" }, allEntries = true)
     public OvertimeRequest create(OvertimeRequestRequest request) {
         validateRequest(request);
 
-        OvertimeRequest overtimeRequest = new OvertimeRequest(
+        OvertimeRequestEntity overtimeRequest = new OvertimeRequestEntity(
                 UUID.randomUUID(),
                 request.employeeId(),
                 request.date(),
@@ -32,48 +38,38 @@ public class OvertimeRequestService {
                 request.reason().trim(),
                 OvertimeRequestStatus.PENDING);
 
-        overtimeRequests.put(overtimeRequest.id(), overtimeRequest);
-        return overtimeRequest;
+        overtimeRequestRepository.save(overtimeRequest);
+        return overtimeRequest.toRecord();
     }
 
+    @CacheEvict(value = { "overtimeRequests", "overtime-request-report" }, allEntries = true)
     public OvertimeRequest approve(UUID id) {
-        OvertimeRequest overtimeRequest = findById(id);
-        if (overtimeRequest.status() != OvertimeRequestStatus.PENDING) {
+        OvertimeRequestEntity overtimeRequest = overtimeRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Overtime request not found"));
+        if (overtimeRequest.getStatus() != OvertimeRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be approved");
         }
-        OvertimeRequest approved = new OvertimeRequest(
-                overtimeRequest.id(),
-                overtimeRequest.employeeId(),
-                overtimeRequest.date(),
-                overtimeRequest.hours(),
-                overtimeRequest.reason(),
-                OvertimeRequestStatus.APPROVED);
-        overtimeRequests.put(id, approved);
-        return approved;
+        overtimeRequest.approve();
+        overtimeRequestRepository.save(overtimeRequest);
+        return overtimeRequest.toRecord();
     }
 
+    @CacheEvict(value = { "overtimeRequests", "overtime-request-report" }, allEntries = true)
     public OvertimeRequest reject(UUID id) {
-        OvertimeRequest overtimeRequest = findById(id);
-        if (overtimeRequest.status() != OvertimeRequestStatus.PENDING) {
+        OvertimeRequestEntity overtimeRequest = overtimeRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Overtime request not found"));
+        if (overtimeRequest.getStatus() != OvertimeRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be rejected");
         }
-        OvertimeRequest rejected = new OvertimeRequest(
-                overtimeRequest.id(),
-                overtimeRequest.employeeId(),
-                overtimeRequest.date(),
-                overtimeRequest.hours(),
-                overtimeRequest.reason(),
-                OvertimeRequestStatus.REJECTED);
-        overtimeRequests.put(id, rejected);
-        return rejected;
+        overtimeRequest.reject();
+        overtimeRequestRepository.save(overtimeRequest);
+        return overtimeRequest.toRecord();
     }
 
     public OvertimeRequest findById(UUID id) {
-        OvertimeRequest overtimeRequest = overtimeRequests.get(id);
-        if (overtimeRequest == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Overtime request not found");
-        }
-        return overtimeRequest;
+        return overtimeRequestRepository.findById(id)
+                .map(OvertimeRequestEntity::toRecord)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Overtime request not found"));
     }
 
     private void validateRequest(OvertimeRequestRequest request) {

@@ -1,0 +1,55 @@
+:host {
+  --ink-950: #0b0f1a;
+  --paper: #f7f5ef;
+  --amber: #f5a623;
+  --amber-dark: #c97f0b;
+  --muted-on-paper: #756f63;
+
+  display: block;
+  min-height: 100vh;
+  background: var(--paper);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.home__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+  background: var(--ink-950);
+  color: #fff;
+}
+
+.home__brand {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.home__logout {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-950);
+  background: var(--amber);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--amber-dark);
+  }
+}
+
+.home__content {
+  max-width: 32rem;
+  margin: 4rem auto 0;
+  text-align: center;
+  color: #1c2333;
+
+  p {
+    color: var(--muted-on-paper);
+  }
+}

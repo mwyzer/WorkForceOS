@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-workforceos}
+      POSTGRES_USER: ${DB_USERNAME:-workforceos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-workforceos}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-workforceos} -d ${DB_NAME:-workforceos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      WORKFORCE_AUTH_SIGNING_KEY: ${WORKFORCE_AUTH_SIGNING_KEY:-workforce-os-development-signing-key-change-me}
+      WORKFORCE_AUTH_ADMIN_USERNAME: ${WORKFORCE_AUTH_ADMIN_USERNAME:-admin}
+      WORKFORCE_AUTH_ADMIN_PASSWORD: ${WORKFORCE_AUTH_ADMIN_PASSWORD:-admin}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-workforceos}
+      DB_USERNAME: ${DB_USERNAME:-workforceos}
+      DB_PASSWORD: ${DB_PASSWORD:-workforceos}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:
+  redis-data:
