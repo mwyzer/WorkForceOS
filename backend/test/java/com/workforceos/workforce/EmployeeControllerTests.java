@@ -31,8 +31,8 @@ class EmployeeControllerTests {
 
     @Test
     void createsAndListsEmployee() throws Exception {
-        UUID departmentId = UUID.randomUUID();
-        UUID teamId = UUID.randomUUID();
+        UUID departmentId = createDepartment();
+        UUID teamId = createTeam(departmentId);
         String request = """
                 {
                   "employeeNumber": "EMP-001",
@@ -67,6 +67,8 @@ class EmployeeControllerTests {
     }
 
     private UUID createEmployee(String employeeNumber) throws Exception {
+        UUID departmentId = createDepartment();
+        UUID teamId = createTeam(departmentId);
         String request = """
                 {
                   "employeeNumber": "%s",
@@ -76,9 +78,45 @@ class EmployeeControllerTests {
                   "departmentId": "%s",
                   "teamId": "%s"
                 }
-                """.formatted(employeeNumber, employeeNumber.toLowerCase(), UUID.randomUUID(), UUID.randomUUID());
+                """.formatted(employeeNumber, employeeNumber.toLowerCase(), departmentId, teamId);
 
         String location = mockMvc.perform(post("/api/v1/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+    }
+
+    private UUID createDepartment() throws Exception {
+        String request = """
+                {
+                  "organizationId": "%s",
+                  "name": "Operations"
+                }
+                """.formatted(UUID.randomUUID());
+
+        String location = mockMvc.perform(post("/api/v1/departments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+    }
+
+    private UUID createTeam(UUID departmentId) throws Exception {
+        String request = """
+                {
+                  "departmentId": "%s",
+                  "name": "Warehouse"
+                }
+                """.formatted(departmentId);
+
+        String location = mockMvc.perform(post("/api/v1/teams")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isCreated())

@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class DepartmentService {
 
@@ -46,12 +48,8 @@ public class DepartmentService {
     }
 
     private void validate(DepartmentRequest request) {
-        if (request == null || request.organizationId() == null || isBlank(request.name())) {
+        if (request == null || request.organizationId() == null || ValidationUtils.isBlank(request.name())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization and department name are required");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

@@ -9,10 +9,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class TeamService {
 
     private final ConcurrentMap<UUID, Team> teams = new ConcurrentHashMap<>();
+    private final DepartmentService departmentService;
+
+    public TeamService(DepartmentService departmentService) {
+        this.departmentService = departmentService;
+    }
 
     public List<Team> findAll() {
         return teams.values().stream().toList();
@@ -42,12 +49,9 @@ public class TeamService {
     }
 
     private void validate(TeamRequest request) {
-        if (request == null || request.departmentId() == null || isBlank(request.name())) {
+        if (request == null || request.departmentId() == null || ValidationUtils.isBlank(request.name())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Department and team name are required");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
+        departmentService.findById(request.departmentId());
     }
 }

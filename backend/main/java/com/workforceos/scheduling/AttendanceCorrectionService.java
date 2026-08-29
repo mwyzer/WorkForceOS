@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class AttendanceCorrectionService {
 
@@ -35,6 +37,9 @@ public class AttendanceCorrectionService {
 
     public AttendanceCorrection approve(UUID id) {
         AttendanceCorrection attendanceCorrection = findById(id);
+        if (attendanceCorrection.status() != AttendanceCorrectionStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING attendance corrections can be approved");
+        }
         AttendanceCorrection approved = new AttendanceCorrection(
                 attendanceCorrection.id(),
                 attendanceCorrection.employeeId(),
@@ -48,6 +53,9 @@ public class AttendanceCorrectionService {
 
     public AttendanceCorrection reject(UUID id) {
         AttendanceCorrection attendanceCorrection = findById(id);
+        if (attendanceCorrection.status() != AttendanceCorrectionStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING attendance corrections can be rejected");
+        }
         AttendanceCorrection rejected = new AttendanceCorrection(
                 attendanceCorrection.id(),
                 attendanceCorrection.employeeId(),
@@ -72,13 +80,9 @@ public class AttendanceCorrectionService {
                 || request.employeeId() == null
                 || request.attendanceId() == null
                 || request.type() == null
-                || isBlank(request.details())) {
+                || ValidationUtils.isBlank(request.details())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Employee, attendance, type, and details are required");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

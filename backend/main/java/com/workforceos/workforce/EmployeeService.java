@@ -9,10 +9,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class EmployeeService {
 
     private final ConcurrentMap<UUID, Employee> employees = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, UUID> employeeNumberIndex = new ConcurrentHashMap<>();
+    private final DepartmentService departmentService;
+    private final TeamService teamService;
+
+    public EmployeeService(DepartmentService departmentService, TeamService teamService) {
+        this.departmentService = departmentService;
+        this.teamService = teamService;
+    }
 
     public List<Employee> findAll() {
         return employees.values().stream().toList();
@@ -28,11 +38,6 @@ public class EmployeeService {
 
     public Employee create(CreateEmployeeRequest request) {
         validate(request);
-        boolean numberExists = employees.values().stream()
-                .anyMatch(employee -> employee.employeeNumber().equalsIgnoreCase(request.employeeNumber()));
-        if (numberExists) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee number already exists");
-        }
 
         Employee employee = new Employee(
                 UUID.randomUUID(),
@@ -43,6 +48,11 @@ public class EmployeeService {
                 request.departmentId(),
                 request.teamId(),
                 true);
+
+        String numberKey = employee.employeeNumber().toLowerCase();
+        if (employeeNumberIndex.putIfAbsent(numberKey, employee.id()) != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee number already exists");
+        }
         employees.put(employee.id(), employee);
         return employee;
     }
@@ -64,17 +74,15 @@ public class EmployeeService {
 
     private void validate(CreateEmployeeRequest request) {
         if (request == null
-                || isBlank(request.employeeNumber())
-                || isBlank(request.firstName())
-                || isBlank(request.lastName())
-                || isBlank(request.email())
+                || ValidationUtils.isBlank(request.employeeNumber())
+                || ValidationUtils.isBlank(request.firstName())
+                || ValidationUtils.isBlank(request.lastName())
+                || ValidationUtils.isBlank(request.email())
                 || request.departmentId() == null
                 || request.teamId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee fields are required");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
+        departmentService.findById(request.departmentId());
+        teamService.findById(request.teamId());
     }
 }

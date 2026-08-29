@@ -25,10 +25,6 @@ public class AttendanceService {
     public AttendanceSession clockIn(AttendanceRequest request) {
         validateRequest(request);
 
-        if (activeSessions.containsKey(request.employeeId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already has an active attendance session");
-        }
-
         RosterAssignment assignment = findEligibleAssignment(request.employeeId(), request.occurredAt());
         if (assignment == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee is not eligible to clock in at the specified time");
@@ -43,7 +39,9 @@ public class AttendanceService {
                 null,
                 true);
 
-        activeSessions.put(request.employeeId(), session);
+        if (activeSessions.putIfAbsent(request.employeeId(), session) != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already has an active attendance session");
+        }
         employeeHistory.computeIfAbsent(request.employeeId(), ignored -> new ArrayList<>()).add(session);
         return session;
     }
@@ -85,11 +83,16 @@ public class AttendanceService {
 
     private RosterAssignment findEligibleAssignment(UUID employeeId, OffsetDateTime occurredAt) {
         return rosterService.findAll().stream()
+                .filter(roster -> roster.status() == RosterStatus.PUBLISHED)
                 .flatMap(roster -> rosterService.findAssignments(roster.id()).stream())
                 .filter(assignment -> assignment.employeeId().equals(employeeId))
                 .filter(RosterAssignment::active)
                 .filter(assignment -> !occurredAt.isBefore(assignment.start()) && !occurredAt.isAfter(assignment.end()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    public List<AttendanceSession> findAllSessions() {
+        return employeeHistory.values().stream().flatMap(List::stream).toList();
     }
 }

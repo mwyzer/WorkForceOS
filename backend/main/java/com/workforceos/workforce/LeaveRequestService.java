@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class LeaveRequestService {
 
@@ -36,6 +38,9 @@ public class LeaveRequestService {
 
     public LeaveRequest approve(UUID id) {
         LeaveRequest leaveRequest = findById(id);
+        if (leaveRequest.status() != LeaveRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING leave requests can be approved");
+        }
         LeaveRequest approved = new LeaveRequest(
                 leaveRequest.id(),
                 leaveRequest.employeeId(),
@@ -60,7 +65,7 @@ public class LeaveRequestService {
                 || request.employeeId() == null
                 || request.startDate() == null
                 || request.endDate() == null
-                || isBlank(request.reason())) {
+                || ValidationUtils.isBlank(request.reason())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee, dates, and reason are required");
         }
         if (!request.endDate().isAfter(request.startDate()) && !request.endDate().isEqual(request.startDate())) {
@@ -69,9 +74,5 @@ public class LeaveRequestService {
         if (request.startDate().isBefore(LocalDate.now())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leave start date cannot be in the past");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

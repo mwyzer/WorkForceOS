@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class NotificationService {
 
@@ -73,15 +75,11 @@ public class NotificationService {
         if (request == null
                 || request.recipientId() == null
                 || request.type() == null
-                || isBlank(request.title())
-                || isBlank(request.body())
+                || ValidationUtils.isBlank(request.title())
+                || ValidationUtils.isBlank(request.body())
                 || request.channel() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Recipient, type, title, body, and channel are required");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

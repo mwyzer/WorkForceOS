@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class RosterService {
 
@@ -54,6 +56,12 @@ public class RosterService {
         return assignments == null ? List.of() : List.copyOf(assignments.values());
     }
 
+    public List<RosterAssignment> findAllAssignments() {
+        return assignmentsByRoster.values().stream()
+                .flatMap(assignments -> assignments.values().stream())
+                .toList();
+    }
+
     public RosterAssignment addAssignment(UUID rosterId, RosterAssignmentRequest request) {
         findById(rosterId);
         validateAssignment(request);
@@ -61,21 +69,23 @@ public class RosterService {
         ConcurrentMap<UUID, RosterAssignment> rosterAssignments = assignmentsByRoster.computeIfAbsent(rosterId,
                 ignored -> new ConcurrentHashMap<>());
 
-        boolean overlaps = rosterAssignments.values().stream()
-                .filter(assignment -> assignment.employeeId().equals(request.employeeId()) && assignment.active())
-                .anyMatch(assignment -> request.start().isBefore(assignment.end()) && request.end().isAfter(assignment.start()));
-        if (overlaps) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee has overlapping roster assignments");
-        }
+        synchronized (rosterAssignments) {
+            boolean overlaps = rosterAssignments.values().stream()
+                    .filter(assignment -> assignment.employeeId().equals(request.employeeId()) && assignment.active())
+                    .anyMatch(assignment -> request.start().isBefore(assignment.end()) && request.end().isAfter(assignment.start()));
+            if (overlaps) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee has overlapping roster assignments");
+            }
 
-        RosterAssignment assignment = new RosterAssignment(UUID.randomUUID(), rosterId, request.employeeId(),
-                request.shiftTemplateId(), request.start(), request.end(), true);
-        rosterAssignments.put(assignment.id(), assignment);
-        return assignment;
+            RosterAssignment assignment = new RosterAssignment(UUID.randomUUID(), rosterId, request.employeeId(),
+                    request.shiftTemplateId(), request.start(), request.end(), true);
+            rosterAssignments.put(assignment.id(), assignment);
+            return assignment;
+        }
     }
 
     private void validateRoster(RosterRequest request) {
-        if (request == null || request.organizationId() == null || isBlank(request.name())) {
+        if (request == null || request.organizationId() == null || ValidationUtils.isBlank(request.name())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization and roster name are required");
         }
     }
@@ -88,9 +98,5 @@ public class RosterService {
         if (!request.end().isAfter(request.start())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignment end must be after start");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

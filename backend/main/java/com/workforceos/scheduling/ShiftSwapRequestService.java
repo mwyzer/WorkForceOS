@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class ShiftSwapRequestService {
 
@@ -37,6 +39,9 @@ public class ShiftSwapRequestService {
 
     public ShiftSwapRequest approve(UUID id) {
         ShiftSwapRequest shiftSwapRequest = findById(id);
+        if (shiftSwapRequest.status() != ShiftSwapRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING shift swap requests can be approved");
+        }
         ShiftSwapRequest approved = new ShiftSwapRequest(
                 shiftSwapRequest.id(),
                 shiftSwapRequest.requestingEmployeeId(),
@@ -51,6 +56,9 @@ public class ShiftSwapRequestService {
 
     public ShiftSwapRequest reject(UUID id) {
         ShiftSwapRequest shiftSwapRequest = findById(id);
+        if (shiftSwapRequest.status() != ShiftSwapRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING shift swap requests can be rejected");
+        }
         ShiftSwapRequest rejected = new ShiftSwapRequest(
                 shiftSwapRequest.id(),
                 shiftSwapRequest.requestingEmployeeId(),
@@ -77,7 +85,7 @@ public class ShiftSwapRequestService {
                 || request.targetEmployeeId() == null
                 || request.offeredDate() == null
                 || request.requestedDate() == null
-                || isBlank(request.reason())) {
+                || ValidationUtils.isBlank(request.reason())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Requesting employee, target employee, offered date, requested date, and reason are required");
         }
@@ -87,9 +95,5 @@ public class ShiftSwapRequestService {
         if (request.offeredDate().isBefore(LocalDate.now()) || request.requestedDate().isBefore(LocalDate.now())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Swap dates cannot be in the past");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

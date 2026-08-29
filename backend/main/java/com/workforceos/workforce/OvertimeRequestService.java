@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class OvertimeRequestService {
 
@@ -36,6 +38,9 @@ public class OvertimeRequestService {
 
     public OvertimeRequest approve(UUID id) {
         OvertimeRequest overtimeRequest = findById(id);
+        if (overtimeRequest.status() != OvertimeRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be approved");
+        }
         OvertimeRequest approved = new OvertimeRequest(
                 overtimeRequest.id(),
                 overtimeRequest.employeeId(),
@@ -49,6 +54,9 @@ public class OvertimeRequestService {
 
     public OvertimeRequest reject(UUID id) {
         OvertimeRequest overtimeRequest = findById(id);
+        if (overtimeRequest.status() != OvertimeRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be rejected");
+        }
         OvertimeRequest rejected = new OvertimeRequest(
                 overtimeRequest.id(),
                 overtimeRequest.employeeId(),
@@ -73,7 +81,7 @@ public class OvertimeRequestService {
                 || request.employeeId() == null
                 || request.date() == null
                 || request.hours() == null
-                || isBlank(request.reason())) {
+                || ValidationUtils.isBlank(request.reason())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee, date, hours, and reason are required");
         }
         if (request.hours() <= 0) {
@@ -82,9 +90,5 @@ public class OvertimeRequestService {
         if (request.date().isBefore(LocalDate.now())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Overtime date cannot be in the past");
         }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

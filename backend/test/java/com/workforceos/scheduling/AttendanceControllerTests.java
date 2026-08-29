@@ -110,7 +110,12 @@ class AttendanceControllerTests {
                 .getContentAsString();
 
         String id = response.split("\"id\":\"")[1].split("\"")[0];
-        return UUID.fromString(id);
+        UUID rosterId = UUID.fromString(id);
+
+        mockMvc.perform(post("/api/v1/rosters/{id}/publish", rosterId))
+                .andExpect(status().isOk());
+
+        return rosterId;
     }
 
     private void createAssignment(UUID rosterId, UUID employeeId, String start, String end) throws Exception {

@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.ValidationUtils;
+
 @Service
 public class AuditLogService {
 
@@ -49,9 +51,9 @@ public class AuditLogService {
 
     private void validateRequest(AuditLogRequest request) {
         if (request == null
-                || isBlank(request.actor())
-                || isBlank(request.action())
-                || isBlank(request.resource())
+                || ValidationUtils.isBlank(request.actor())
+                || ValidationUtils.isBlank(request.action())
+                || ValidationUtils.isBlank(request.resource())
                 || request.resourceId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Actor, action, resource, and resourceId are required");
@@ -60,9 +62,5 @@ public class AuditLogService {
 
     private String normalizeDetails(String details) {
         return details == null ? "" : details.trim();
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }
