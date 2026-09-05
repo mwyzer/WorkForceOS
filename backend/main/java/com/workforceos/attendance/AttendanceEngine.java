@@ -1,4 +1,4 @@
-package com.workforceos.scheduling;
+package com.workforceos.attendance;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -16,14 +16,16 @@ import com.workforceos.schedule.RosterStatus;
 import com.workforceos.schedule.ScheduleEngine;
 
 @Service
-public class AttendanceService {
+public class AttendanceEngine {
 
     private final ScheduleEngine scheduleEngine;
+    private final AttendanceCalculator calculator;
     private final ConcurrentMap<UUID, AttendanceSession> activeSessions = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, List<AttendanceSession>> employeeHistory = new ConcurrentHashMap<>();
 
-    public AttendanceService(ScheduleEngine scheduleEngine) {
+    public AttendanceEngine(ScheduleEngine scheduleEngine, AttendanceCalculator calculator) {
         this.scheduleEngine = scheduleEngine;
+        this.calculator = calculator;
     }
 
     public AttendanceSession clockIn(AttendanceRequest request) {
@@ -79,6 +81,21 @@ public class AttendanceService {
         return employeeHistory.getOrDefault(employeeId, List.of());
     }
 
+    public List<AttendanceSession> findAllSessions() {
+        return employeeHistory.values().stream().flatMap(List::stream).toList();
+    }
+
+    public AttendanceCalculation calculate(AttendanceSession session) {
+        return calculator.calculate(session);
+    }
+
+    public List<AttendanceCalculation> calculateAll() {
+        return findAllSessions().stream()
+                .filter(session -> session.clockOutAt() != null)
+                .map(calculator::calculate)
+                .toList();
+    }
+
     private void validateRequest(AttendanceRequest request) {
         if (request == null || request.employeeId() == null || request.occurredAt() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee and occurrence time are required");
@@ -94,9 +111,5 @@ public class AttendanceService {
                 .filter(assignment -> !occurredAt.isBefore(assignment.start()) && !occurredAt.isAfter(assignment.end()))
                 .findFirst()
                 .orElse(null);
-    }
-
-    public List<AttendanceSession> findAllSessions() {
-        return employeeHistory.values().stream().flatMap(List::stream).toList();
     }
 }

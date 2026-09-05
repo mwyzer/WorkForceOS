@@ -7,8 +7,8 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workforceos.attendance.AttendanceReport;
 import com.workforceos.dashboard.DashboardSummary;
-import com.workforceos.scheduling.AttendanceReport;
 import com.workforceos.scheduling.AuditLogSummary;
 import com.workforceos.scheduling.LeaveRequestReport;
 import com.workforceos.scheduling.OvertimeRequestReport;

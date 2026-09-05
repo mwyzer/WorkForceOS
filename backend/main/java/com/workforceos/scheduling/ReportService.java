@@ -9,6 +9,10 @@ import java.util.stream.Collectors;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import com.workforceos.attendance.AttendanceCalculation;
+import com.workforceos.attendance.AttendanceEngine;
+import com.workforceos.attendance.AttendanceReport;
+import com.workforceos.attendance.AttendanceSession;
 import com.workforceos.schedule.RosterAssignment;
 import com.workforceos.schedule.ScheduleEngine;
 import com.workforceos.workforce.LeaveRequest;
@@ -24,18 +28,18 @@ public class ReportService {
     private final LeaveRequestService leaveRequestService;
     private final OvertimeRequestService overtimeRequestService;
     private final AuditLogService auditLogService;
-    private final AttendanceService attendanceService;
+    private final AttendanceEngine attendanceEngine;
     private final ScheduleEngine scheduleEngine;
 
     public ReportService(LeaveRequestService leaveRequestService,
             OvertimeRequestService overtimeRequestService,
             AuditLogService auditLogService,
-            AttendanceService attendanceService,
+            AttendanceEngine attendanceEngine,
             ScheduleEngine scheduleEngine) {
         this.leaveRequestService = leaveRequestService;
         this.overtimeRequestService = overtimeRequestService;
         this.auditLogService = auditLogService;
-        this.attendanceService = attendanceService;
+        this.attendanceEngine = attendanceEngine;
         this.scheduleEngine = scheduleEngine;
     }
 
@@ -67,46 +71,22 @@ public class ReportService {
 
     @Cacheable("attendance-report")
     public AttendanceReport getAttendanceReport() {
-        List<AttendanceSession> sessions = attendanceService.findAllSessions();
-        List<RosterAssignment> assignments = scheduleEngine.findAllAssignments();
+        List<AttendanceCalculation> calculations = attendanceEngine.calculateAll();
 
-        long present = sessions.size();
-        long late = 0;
-        long earlyLeave = 0;
-        long overtime = 0;
-
-        for (AttendanceSession session : sessions) {
-            RosterAssignment assignment = matchAssignment(session, assignments);
-            if (assignment == null) {
-                continue;
-            }
-            if (session.clockInAt().isAfter(assignment.start())) {
-                late++;
-            }
-            if (session.clockOutAt() != null) {
-                if (session.clockOutAt().isBefore(assignment.end())) {
-                    earlyLeave++;
-                } else if (session.clockOutAt().isAfter(assignment.end())) {
-                    overtime++;
-                }
-            }
-        }
+        long present = calculations.size();
+        long late = calculations.stream().filter(AttendanceCalculation::late).count();
+        long earlyLeave = calculations.stream().filter(AttendanceCalculation::earlyLeave).count();
+        long overtime = calculations.stream().filter(calculation -> calculation.overtimeMinutes() > 0).count();
 
         OffsetDateTime now = OffsetDateTime.now();
-        long absent = assignments.stream()
+        long absent = scheduleEngine.findAllAssignments().stream()
                 .filter(RosterAssignment::active)
                 .filter(assignment -> assignment.end().isBefore(now))
-                .filter(assignment -> sessions.stream().noneMatch(session -> matchesAssignment(session, assignment)))
+                .filter(assignment -> calculations.stream()
+                        .noneMatch(calculation -> matchesAssignment(calculation.session(), assignment)))
                 .count();
 
         return new AttendanceReport(present, late, absent, earlyLeave, overtime);
-    }
-
-    private RosterAssignment matchAssignment(AttendanceSession session, List<RosterAssignment> assignments) {
-        return assignments.stream()
-                .filter(assignment -> matchesAssignment(session, assignment))
-                .findFirst()
-                .orElse(null);
     }
 
     private boolean matchesAssignment(AttendanceSession session, RosterAssignment assignment) {

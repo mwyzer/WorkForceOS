@@ -1,4 +1,4 @@
-package com.workforceos.scheduling;
+package com.workforceos.attendance;
 
 import java.net.URI;
 import java.util.List;

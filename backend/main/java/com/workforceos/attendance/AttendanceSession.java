@@ -1,4 +1,4 @@
-package com.workforceos.scheduling;
+package com.workforceos.attendance;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

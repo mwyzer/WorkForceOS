@@ -1,4 +1,4 @@
-package com.workforceos.scheduling;
+package com.workforceos.attendance;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,24 +14,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/attendance")
 public class AttendanceController {
 
-    private final AttendanceService attendanceService;
+    private final AttendanceEngine attendanceEngine;
 
-    public AttendanceController(AttendanceService attendanceService) {
-        this.attendanceService = attendanceService;
+    public AttendanceController(AttendanceEngine attendanceEngine) {
+        this.attendanceEngine = attendanceEngine;
     }
 
     @PostMapping("/clock-in")
     public AttendanceSession clockIn(@RequestBody AttendanceRequest request) {
-        return attendanceService.clockIn(request);
+        return attendanceEngine.clockIn(request);
     }
 
     @PostMapping("/clock-out")
     public AttendanceSession clockOut(@RequestBody AttendanceRequest request) {
-        return attendanceService.clockOut(request);
+        return attendanceEngine.clockOut(request);
     }
 
     @GetMapping("/me")
     public List<AttendanceSession> findMyAttendance(@RequestParam UUID employeeId) {
-        return attendanceService.findByEmployee(employeeId);
+        return attendanceEngine.findByEmployee(employeeId);
     }
 }
