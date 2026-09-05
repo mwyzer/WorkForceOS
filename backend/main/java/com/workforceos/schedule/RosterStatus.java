@@ -1,4 +1,4 @@
-package com.workforceos.scheduling;
+package com.workforceos.schedule;
 
 public enum RosterStatus {
     DRAFT,

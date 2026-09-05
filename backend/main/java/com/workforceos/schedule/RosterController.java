@@ -1,4 +1,4 @@
-package com.workforceos.scheduling;
+package com.workforceos.schedule;
 
 import java.net.URI;
 import java.util.List;
@@ -16,42 +16,47 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class RosterController {
 
-    private final RosterService rosterService;
+    private final ScheduleEngine scheduleEngine;
 
-    public RosterController(RosterService rosterService) {
-        this.rosterService = rosterService;
+    public RosterController(ScheduleEngine scheduleEngine) {
+        this.scheduleEngine = scheduleEngine;
     }
 
     @GetMapping("/rosters")
     public List<Roster> findAll() {
-        return rosterService.findAll();
+        return scheduleEngine.findAllRosters();
+    }
+
+    @GetMapping("/rosters/conflicts")
+    public List<ScheduleConflict> findConflicts() {
+        return scheduleEngine.findConflicts();
     }
 
     @GetMapping("/rosters/{id}")
     public Roster findById(@PathVariable UUID id) {
-        return rosterService.findById(id);
+        return scheduleEngine.findRoster(id);
     }
 
     @PostMapping("/rosters")
     public ResponseEntity<Roster> create(@RequestBody RosterRequest request) {
-        Roster roster = rosterService.create(request);
+        Roster roster = scheduleEngine.createRoster(request);
         return ResponseEntity.created(URI.create("/api/v1/rosters/" + roster.id())).body(roster);
     }
 
     @PostMapping("/rosters/{id}/publish")
     public Roster publish(@PathVariable UUID id) {
-        return rosterService.publish(id);
+        return scheduleEngine.publishRoster(id);
     }
 
     @GetMapping("/rosters/{id}/assignments")
     public List<RosterAssignment> findAssignments(@PathVariable UUID id) {
-        return rosterService.findAssignments(id);
+        return scheduleEngine.findAssignments(id);
     }
 
     @PostMapping("/rosters/{id}/assignments")
     public ResponseEntity<RosterAssignment> addAssignment(@PathVariable UUID id,
             @RequestBody RosterAssignmentRequest request) {
-        RosterAssignment assignment = rosterService.addAssignment(id, request);
+        RosterAssignment assignment = scheduleEngine.addAssignment(id, request);
         return ResponseEntity.created(URI.create("/api/v1/rosters/" + id + "/assignments/" + assignment.id()))
                 .body(assignment);
     }

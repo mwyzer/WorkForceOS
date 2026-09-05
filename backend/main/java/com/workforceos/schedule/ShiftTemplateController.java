@@ -1,4 +1,4 @@
-package com.workforceos.scheduling;
+package com.workforceos.schedule;
 
 import java.net.URI;
 import java.util.List;
@@ -17,30 +17,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/shifts")
 public class ShiftTemplateController {
 
-    private final ShiftTemplateService shiftTemplateService;
+    private final ScheduleEngine scheduleEngine;
 
-    public ShiftTemplateController(ShiftTemplateService shiftTemplateService) {
-        this.shiftTemplateService = shiftTemplateService;
+    public ShiftTemplateController(ScheduleEngine scheduleEngine) {
+        this.scheduleEngine = scheduleEngine;
     }
 
     @GetMapping
     public List<ShiftTemplate> findAll() {
-        return shiftTemplateService.findAll();
+        return scheduleEngine.findAllShifts();
     }
 
     @GetMapping("/{id}")
     public ShiftTemplate findById(@PathVariable UUID id) {
-        return shiftTemplateService.findById(id);
+        return scheduleEngine.findShift(id);
     }
 
     @PostMapping
     public ResponseEntity<ShiftTemplate> create(@RequestBody ShiftTemplateRequest request) {
-        ShiftTemplate shift = shiftTemplateService.create(request);
+        ShiftTemplate shift = scheduleEngine.createShift(request);
         return ResponseEntity.created(URI.create("/api/v1/shifts/" + shift.id())).body(shift);
     }
 
     @PatchMapping("/{id}")
     public ShiftTemplate update(@PathVariable UUID id, @RequestBody ShiftTemplateRequest request) {
-        return shiftTemplateService.update(id, request);
+        return scheduleEngine.updateShift(id, request);
     }
 }

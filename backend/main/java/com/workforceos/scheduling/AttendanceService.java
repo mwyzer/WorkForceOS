@@ -11,15 +11,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.schedule.RosterAssignment;
+import com.workforceos.schedule.RosterStatus;
+import com.workforceos.schedule.ScheduleEngine;
+
 @Service
 public class AttendanceService {
 
-    private final RosterService rosterService;
+    private final ScheduleEngine scheduleEngine;
     private final ConcurrentMap<UUID, AttendanceSession> activeSessions = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, List<AttendanceSession>> employeeHistory = new ConcurrentHashMap<>();
 
-    public AttendanceService(RosterService rosterService) {
-        this.rosterService = rosterService;
+    public AttendanceService(ScheduleEngine scheduleEngine) {
+        this.scheduleEngine = scheduleEngine;
     }
 
     public AttendanceSession clockIn(AttendanceRequest request) {
@@ -82,9 +86,9 @@ public class AttendanceService {
     }
 
     private RosterAssignment findEligibleAssignment(UUID employeeId, OffsetDateTime occurredAt) {
-        return rosterService.findAll().stream()
+        return scheduleEngine.findAllRosters().stream()
                 .filter(roster -> roster.status() == RosterStatus.PUBLISHED)
-                .flatMap(roster -> rosterService.findAssignments(roster.id()).stream())
+                .flatMap(roster -> scheduleEngine.findAssignments(roster.id()).stream())
                 .filter(assignment -> assignment.employeeId().equals(employeeId))
                 .filter(RosterAssignment::active)
                 .filter(assignment -> !occurredAt.isBefore(assignment.start()) && !occurredAt.isAfter(assignment.end()))

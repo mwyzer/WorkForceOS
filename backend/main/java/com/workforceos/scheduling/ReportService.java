@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import com.workforceos.schedule.RosterAssignment;
+import com.workforceos.schedule.ScheduleEngine;
 import com.workforceos.workforce.LeaveRequest;
 import com.workforceos.workforce.LeaveRequestService;
 import com.workforceos.workforce.LeaveRequestStatus;
@@ -23,18 +25,18 @@ public class ReportService {
     private final OvertimeRequestService overtimeRequestService;
     private final AuditLogService auditLogService;
     private final AttendanceService attendanceService;
-    private final RosterService rosterService;
+    private final ScheduleEngine scheduleEngine;
 
     public ReportService(LeaveRequestService leaveRequestService,
             OvertimeRequestService overtimeRequestService,
             AuditLogService auditLogService,
             AttendanceService attendanceService,
-            RosterService rosterService) {
+            ScheduleEngine scheduleEngine) {
         this.leaveRequestService = leaveRequestService;
         this.overtimeRequestService = overtimeRequestService;
         this.auditLogService = auditLogService;
         this.attendanceService = attendanceService;
-        this.rosterService = rosterService;
+        this.scheduleEngine = scheduleEngine;
     }
 
     @Cacheable("leave-request-report")
@@ -66,7 +68,7 @@ public class ReportService {
     @Cacheable("attendance-report")
     public AttendanceReport getAttendanceReport() {
         List<AttendanceSession> sessions = attendanceService.findAllSessions();
-        List<RosterAssignment> assignments = rosterService.findAllAssignments();
+        List<RosterAssignment> assignments = scheduleEngine.findAllAssignments();
 
         long present = sessions.size();
         long late = 0;
