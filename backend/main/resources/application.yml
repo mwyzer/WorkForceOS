@@ -23,7 +23,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       probes:
@@ -37,3 +37,5 @@ workforce:
     signing-key: ${WORKFORCE_AUTH_SIGNING_KEY:workforce-os-development-signing-key-change-me}
     admin-username: ${WORKFORCE_AUTH_ADMIN_USERNAME:admin}
     admin-password: ${WORKFORCE_AUTH_ADMIN_PASSWORD:admin}
+  observability:
+    outbox-failed-threshold: ${WORKFORCE_OUTBOX_FAILED_THRESHOLD:100}
