@@ -3,6 +3,7 @@ package com.workforceos.schedule;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -11,14 +12,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.event.DomainEvent;
+import com.workforceos.event.DomainEvents;
+import com.workforceos.event.EventPublisher;
+import com.workforceos.event.EventTypes;
+import com.workforceos.event.Payloads;
+import com.workforceos.shared.CurrentUser;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
 public class ScheduleEngine {
 
+    private final EventPublisher eventPublisher;
+    private final CurrentUser currentUser;
     private final ConcurrentMap<UUID, ShiftTemplate> shifts = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, Roster> rosters = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, ConcurrentMap<UUID, RosterAssignment>> assignmentsByRoster = new ConcurrentHashMap<>();
+
+    public ScheduleEngine(EventPublisher eventPublisher, CurrentUser currentUser) {
+        this.eventPublisher = eventPublisher;
+        this.currentUser = currentUser;
+    }
 
     public List<ShiftTemplate> findAllShifts() {
         return shifts.values().stream().toList();
@@ -76,6 +90,14 @@ public class ScheduleEngine {
         Roster published = new Roster(roster.id(), roster.organizationId(), roster.name(), RosterStatus.PUBLISHED,
                 roster.createdAt(), roster.active());
         rosters.put(id, published);
+
+        DomainEvent event = DomainEvents.of(EventTypes.ROSTER_PUBLISHED, published.organizationId(), "Roster",
+                published.id(), currentUser.username(),
+                Payloads.json(Map.of(
+                        "rosterId", published.id().toString(),
+                        "name", published.name(),
+                        "status", published.status().name())));
+        eventPublisher.publish(event);
         return published;
     }
 

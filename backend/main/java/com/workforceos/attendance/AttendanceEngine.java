@@ -3,6 +3,7 @@ package com.workforceos.attendance;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -11,21 +12,32 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.event.DomainEvent;
+import com.workforceos.event.DomainEvents;
+import com.workforceos.event.EventPublisher;
+import com.workforceos.event.EventTypes;
+import com.workforceos.event.Payloads;
 import com.workforceos.schedule.RosterAssignment;
 import com.workforceos.schedule.RosterStatus;
 import com.workforceos.schedule.ScheduleEngine;
+import com.workforceos.shared.CurrentUser;
 
 @Service
 public class AttendanceEngine {
 
     private final ScheduleEngine scheduleEngine;
     private final AttendanceCalculator calculator;
+    private final EventPublisher eventPublisher;
+    private final CurrentUser currentUser;
     private final ConcurrentMap<UUID, AttendanceSession> activeSessions = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, List<AttendanceSession>> employeeHistory = new ConcurrentHashMap<>();
 
-    public AttendanceEngine(ScheduleEngine scheduleEngine, AttendanceCalculator calculator) {
+    public AttendanceEngine(ScheduleEngine scheduleEngine, AttendanceCalculator calculator,
+            EventPublisher eventPublisher, CurrentUser currentUser) {
         this.scheduleEngine = scheduleEngine;
         this.calculator = calculator;
+        this.eventPublisher = eventPublisher;
+        this.currentUser = currentUser;
     }
 
     public AttendanceSession clockIn(AttendanceRequest request) {
@@ -49,6 +61,14 @@ public class AttendanceEngine {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already has an active attendance session");
         }
         employeeHistory.computeIfAbsent(request.employeeId(), ignored -> new ArrayList<>()).add(session);
+
+        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_IN, null, "AttendanceSession",
+                session.id(), currentUser.username(),
+                Payloads.json(Map.of(
+                        "employeeId", session.employeeId().toString(),
+                        "rosterId", session.rosterId().toString(),
+                        "shiftTemplateId", session.shiftTemplateId().toString(),
+                        "clockInAt", session.clockInAt().toString()))));
         return session;
     }
 
@@ -71,6 +91,15 @@ public class AttendanceEngine {
 
         activeSessions.remove(request.employeeId());
         employeeHistory.computeIfAbsent(request.employeeId(), ignored -> new ArrayList<>()).add(closed);
+
+        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_OUT, null, "AttendanceSession",
+                closed.id(), currentUser.username(),
+                Payloads.json(Map.of(
+                        "employeeId", closed.employeeId().toString(),
+                        "rosterId", closed.rosterId().toString(),
+                        "shiftTemplateId", closed.shiftTemplateId().toString(),
+                        "clockInAt", closed.clockInAt().toString(),
+                        "clockOutAt", closed.clockOutAt().toString()))));
         return closed;
     }
 

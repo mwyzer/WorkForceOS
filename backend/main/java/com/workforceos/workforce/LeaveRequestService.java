@@ -12,6 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.approval.ApprovalDecision;
 import com.workforceos.approval.ApprovalEngine;
+import com.workforceos.event.DomainEvents;
+import com.workforceos.event.EventPublisher;
+import com.workforceos.event.EventTypes;
+import com.workforceos.event.Payloads;
 import com.workforceos.shared.CurrentUser;
 import com.workforceos.shared.ValidationUtils;
 
@@ -20,12 +24,14 @@ public class LeaveRequestService {
 
     private final LeaveRequestRepository leaveRequestRepository;
     private final ApprovalEngine approvalEngine;
+    private final EventPublisher eventPublisher;
     private final CurrentUser currentUser;
 
     public LeaveRequestService(LeaveRequestRepository leaveRequestRepository, ApprovalEngine approvalEngine,
-            CurrentUser currentUser) {
+            EventPublisher eventPublisher, CurrentUser currentUser) {
         this.leaveRequestRepository = leaveRequestRepository;
         this.approvalEngine = approvalEngine;
+        this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
     }
 
@@ -61,7 +67,14 @@ public class LeaveRequestService {
         approvalEngine.decide(id, ApprovalDecision.APPROVED, currentUser.username(), null);
         leaveRequest.approve();
         leaveRequestRepository.save(leaveRequest);
-        return leaveRequest.toRecord();
+        LeaveRequest approved = leaveRequest.toRecord();
+        eventPublisher.publish(DomainEvents.of(EventTypes.LEAVE_APPROVED, null, "LeaveRequest", approved.id(),
+                currentUser.username(),
+                Payloads.json(java.util.Map.of(
+                        "employeeId", approved.employeeId().toString(),
+                        "startDate", approved.startDate().toString(),
+                        "endDate", approved.endDate().toString()))));
+        return approved;
     }
 
     public LeaveRequest findById(UUID id) {

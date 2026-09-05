@@ -5,20 +5,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.event.EventPublisher;
+import com.workforceos.event.OutboxStore;
 import com.workforceos.schedule.RosterRequest;
 import com.workforceos.schedule.RosterAssignmentRequest;
 import com.workforceos.schedule.ScheduleEngine;
+import com.workforceos.shared.CurrentUser;
 
 class AttendanceEngineTests {
 
-    private final ScheduleEngine scheduleEngine = new ScheduleEngine();
+    private final OutboxStore outbox = new OutboxStore();
+    private final EventPublisher publisher = new EventPublisher(outbox, List.of());
+    private final ScheduleEngine scheduleEngine = new ScheduleEngine(new EventPublisher(new OutboxStore(), List.of()),
+            new CurrentUser());
     private final AttendanceCalculator calculator = new AttendanceCalculator(scheduleEngine);
-    private final AttendanceEngine engine = new AttendanceEngine(scheduleEngine, calculator);
+    private final AttendanceEngine engine = new AttendanceEngine(scheduleEngine, calculator, publisher, new CurrentUser());
 
     @Test
     void clockInRequiresAnEligiblePublishedAssignment() {

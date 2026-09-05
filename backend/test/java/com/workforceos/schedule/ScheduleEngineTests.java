@@ -11,9 +11,16 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.event.EventPublisher;
+import com.workforceos.event.OutboxStore;
+import com.workforceos.event.OutboxStatus;
+import com.workforceos.shared.CurrentUser;
+
 class ScheduleEngineTests {
 
-    private final ScheduleEngine engine = new ScheduleEngine();
+    private final OutboxStore outbox = new OutboxStore();
+    private final EventPublisher publisher = new EventPublisher(outbox, List.of());
+    private final ScheduleEngine engine = new ScheduleEngine(publisher, new CurrentUser());
 
     @Test
     void createsShiftTemplatesIncludingOvernightShifts() {
@@ -41,6 +48,8 @@ class ScheduleEngineTests {
         UUID rosterId = engine.createRoster(new RosterRequest(UUID.randomUUID(), "Week 10")).id();
 
         assertEquals(RosterStatus.PUBLISHED, engine.publishRoster(rosterId).status());
+        assertEquals(1, outbox.findAll().size());
+        assertEquals(OutboxStatus.DELIVERED, outbox.findAll().getFirst().status());
         assertThrows(ResponseStatusException.class, () -> engine.publishRoster(rosterId));
     }
 

@@ -9,10 +9,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.event.DomainEvents;
+import com.workforceos.event.EventPublisher;
+import com.workforceos.event.EventTypes;
+import com.workforceos.event.Payloads;
+import com.workforceos.shared.CurrentUser;
+
 @Service
 public class HandoverService {
 
     private final ConcurrentMap<UUID, Handover> handovers = new ConcurrentHashMap<>();
+    private final EventPublisher eventPublisher;
+    private final CurrentUser currentUser;
+
+    public HandoverService(EventPublisher eventPublisher, CurrentUser currentUser) {
+        this.eventPublisher = eventPublisher;
+        this.currentUser = currentUser;
+    }
 
     public List<Handover> findAll() {
         return handovers.values().stream().toList();
@@ -42,6 +55,12 @@ public class HandoverService {
                 handover.items(),
                 HandoverStatus.SUBMITTED);
         handovers.put(id, submitted);
+
+        eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_SUBMITTED, null, "Handover", submitted.id(),
+                currentUser.username(),
+                Payloads.json(java.util.Map.of(
+                        "employeeId", submitted.employeeId().toString(),
+                        "itemCount", String.valueOf(submitted.items().size())))));
         return submitted;
     }
 
@@ -56,6 +75,11 @@ public class HandoverService {
                 handover.items(),
                 HandoverStatus.ACKNOWLEDGED);
         handovers.put(id, acknowledged);
+
+        eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_ACKNOWLEDGED, null, "Handover", acknowledged.id(),
+                currentUser.username(),
+                Payloads.json(java.util.Map.of(
+                        "employeeId", acknowledged.employeeId().toString()))));
         return acknowledged;
     }
 

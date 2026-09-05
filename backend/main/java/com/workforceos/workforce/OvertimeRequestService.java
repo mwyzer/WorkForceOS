@@ -12,6 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.approval.ApprovalDecision;
 import com.workforceos.approval.ApprovalEngine;
+import com.workforceos.event.DomainEvents;
+import com.workforceos.event.EventPublisher;
+import com.workforceos.event.EventTypes;
+import com.workforceos.event.Payloads;
 import com.workforceos.shared.CurrentUser;
 import com.workforceos.shared.ValidationUtils;
 
@@ -20,12 +24,14 @@ public class OvertimeRequestService {
 
     private final OvertimeRequestRepository overtimeRequestRepository;
     private final ApprovalEngine approvalEngine;
+    private final EventPublisher eventPublisher;
     private final CurrentUser currentUser;
 
     public OvertimeRequestService(OvertimeRequestRepository overtimeRequestRepository, ApprovalEngine approvalEngine,
-            CurrentUser currentUser) {
+            EventPublisher eventPublisher, CurrentUser currentUser) {
         this.overtimeRequestRepository = overtimeRequestRepository;
         this.approvalEngine = approvalEngine;
+        this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
     }
 
@@ -61,7 +67,14 @@ public class OvertimeRequestService {
         approvalEngine.decide(id, ApprovalDecision.APPROVED, currentUser.username(), null);
         overtimeRequest.approve();
         overtimeRequestRepository.save(overtimeRequest);
-        return overtimeRequest.toRecord();
+        OvertimeRequest approved = overtimeRequest.toRecord();
+        eventPublisher.publish(DomainEvents.of(EventTypes.OVERTIME_APPROVED, null, "OvertimeRequest", approved.id(),
+                currentUser.username(),
+                Payloads.json(java.util.Map.of(
+                        "employeeId", approved.employeeId().toString(),
+                        "date", approved.date().toString(),
+                        "hours", approved.hours().toString()))));
+        return approved;
     }
 
     @CacheEvict(value = { "overtimeRequests", "overtime-request-report" }, allEntries = true)
@@ -74,7 +87,14 @@ public class OvertimeRequestService {
         approvalEngine.decide(id, ApprovalDecision.REJECTED, currentUser.username(), null);
         overtimeRequest.reject();
         overtimeRequestRepository.save(overtimeRequest);
-        return overtimeRequest.toRecord();
+        OvertimeRequest rejected = overtimeRequest.toRecord();
+        eventPublisher.publish(DomainEvents.of(EventTypes.OVERTIME_REJECTED, null, "OvertimeRequest", rejected.id(),
+                currentUser.username(),
+                Payloads.json(java.util.Map.of(
+                        "employeeId", rejected.employeeId().toString(),
+                        "date", rejected.date().toString(),
+                        "hours", rejected.hours().toString()))));
+        return rejected;
     }
 
     public OvertimeRequest findById(UUID id) {
