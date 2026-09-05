@@ -50,6 +50,14 @@ class OvertimeRequestEntity {
         return status;
     }
 
+    UUID getId() {
+        return id;
+    }
+
+    UUID getEmployeeId() {
+        return employeeId;
+    }
+
     void approve() {
         this.status = OvertimeRequestStatus.APPROVED;
     }

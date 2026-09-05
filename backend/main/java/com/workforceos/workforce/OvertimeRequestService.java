@@ -10,15 +10,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.approval.ApprovalDecision;
+import com.workforceos.approval.ApprovalEngine;
+import com.workforceos.shared.CurrentUser;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
 public class OvertimeRequestService {
 
     private final OvertimeRequestRepository overtimeRequestRepository;
+    private final ApprovalEngine approvalEngine;
+    private final CurrentUser currentUser;
 
-    public OvertimeRequestService(OvertimeRequestRepository overtimeRequestRepository) {
+    public OvertimeRequestService(OvertimeRequestRepository overtimeRequestRepository, ApprovalEngine approvalEngine,
+            CurrentUser currentUser) {
         this.overtimeRequestRepository = overtimeRequestRepository;
+        this.approvalEngine = approvalEngine;
+        this.currentUser = currentUser;
     }
 
     @Cacheable("overtimeRequests")
@@ -39,6 +47,7 @@ public class OvertimeRequestService {
                 OvertimeRequestStatus.PENDING);
 
         overtimeRequestRepository.save(overtimeRequest);
+        approvalEngine.register(overtimeRequest.getId(), "OVERTIME", overtimeRequest.getEmployeeId(), currentUser.username());
         return overtimeRequest.toRecord();
     }
 
@@ -49,6 +58,7 @@ public class OvertimeRequestService {
         if (overtimeRequest.getStatus() != OvertimeRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be approved");
         }
+        approvalEngine.decide(id, ApprovalDecision.APPROVED, currentUser.username(), null);
         overtimeRequest.approve();
         overtimeRequestRepository.save(overtimeRequest);
         return overtimeRequest.toRecord();
@@ -61,6 +71,7 @@ public class OvertimeRequestService {
         if (overtimeRequest.getStatus() != OvertimeRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be rejected");
         }
+        approvalEngine.decide(id, ApprovalDecision.REJECTED, currentUser.username(), null);
         overtimeRequest.reject();
         overtimeRequestRepository.save(overtimeRequest);
         return overtimeRequest.toRecord();

@@ -10,15 +10,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.approval.ApprovalDecision;
+import com.workforceos.approval.ApprovalEngine;
+import com.workforceos.shared.CurrentUser;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
 public class LeaveRequestService {
 
     private final LeaveRequestRepository leaveRequestRepository;
+    private final ApprovalEngine approvalEngine;
+    private final CurrentUser currentUser;
 
-    public LeaveRequestService(LeaveRequestRepository leaveRequestRepository) {
+    public LeaveRequestService(LeaveRequestRepository leaveRequestRepository, ApprovalEngine approvalEngine,
+            CurrentUser currentUser) {
         this.leaveRequestRepository = leaveRequestRepository;
+        this.approvalEngine = approvalEngine;
+        this.currentUser = currentUser;
     }
 
     @Cacheable("leaveRequests")
@@ -39,6 +47,7 @@ public class LeaveRequestService {
                 LeaveRequestStatus.PENDING);
 
         leaveRequestRepository.save(leaveRequest);
+        approvalEngine.register(leaveRequest.getId(), "LEAVE", leaveRequest.getEmployeeId(), currentUser.username());
         return leaveRequest.toRecord();
     }
 
@@ -49,6 +58,7 @@ public class LeaveRequestService {
         if (leaveRequest.getStatus() != LeaveRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING leave requests can be approved");
         }
+        approvalEngine.decide(id, ApprovalDecision.APPROVED, currentUser.username(), null);
         leaveRequest.approve();
         leaveRequestRepository.save(leaveRequest);
         return leaveRequest.toRecord();
