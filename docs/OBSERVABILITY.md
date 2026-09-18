@@ -6,6 +6,18 @@
 
 Provide enough signal to detect availability and correctness issues, explain an individual request, diagnose slow reports, and monitor background event delivery without exposing sensitive data.
 
+## 1.1 Implemented Baseline
+
+The current build already provides:
+
+- **Request correlation**: `RequestCorrelationFilter` tags every request with `requestId` and W3C `traceId`, writes a structured access log line, and returns `X-Request-Id` and `traceparent` headers.
+- **Structured logging**: `logback-spring.xml` with MDC keys for `requestId`, `traceId`, and `actor`.
+- **Error contract**: `ApiExceptionHandler` returns a single `ApiError` shape (timestamp, status, error, message, path, `traceId`, `requestId`) and logs failures with correlation identifiers.
+- **Metrics**: Micrometer gauges for the outbox (`workforceos.outbox.entries` by `PENDING`/`DELIVERED`/`FAILED`) and handled events (`workforceos.events.handled`); exposed through Spring Boot Actuator (`health`, `info`, `metrics`).
+- **Health**: `GET /api/v1/health` readiness signal, Actuator liveness/readiness probes, and an outbox health indicator that reports `DOWN` when failed entries reach `workforce.observability.outbox-failed-threshold` (default 100).
+
+The sections below describe the complete target standard to reach before production.
+
 ## 2. Logs
 
 Use structured logs with timestamp, level, service, environment, organization scope where safe, request ID, trace ID, actor ID where policy permits, route, status, duration, and error code. Log business outcomes and dependency failures, not secrets or full personal payloads.
@@ -23,6 +35,8 @@ Track request count, error count, latency percentiles, active requests, authenti
 
 For events, track outbox backlog, publish latency, retry count, consumer lag, handler failures, and dead-letter count. For infrastructure, track CPU, memory, restarts, database connections, storage, and dependency health.
 
+For the risk pipeline, track risk analyses per trigger (manual, event, cron), rule evaluation counts, risk index distribution by type and severity, assessments created vs. deduplicated, alert conversion and resolution latency, advisor mode (LLM vs. heuristic fallback), LLM call latency and failures, and dashboard usage.
+
 ## 4. Traces
 
 Propagate W3C trace context across HTTP and event boundaries. Include spans for authentication, authorization, application service, database, external dependency, outbox publish, and consumer handling. Correlate traces with API error responses through `traceId`.
@@ -35,7 +49,7 @@ Every alert needs an owner, severity, runbook, and escalation path. Exact thresh
 
 ## 6. Dashboards and SLOs
 
-Provide service health, API performance, attendance correctness, approval workflow, database, and event-processing dashboards. Start with the PRD targets of 99.9% availability, p95 reads below 500 ms, and p95 writes below 1 second; revise after load testing.
+Provide service health, API performance, attendance correctness, approval workflow, risk intelligence, database, and event-processing dashboards. Start with the PRD targets of 99.9% availability, p95 reads below 500 ms, and p95 writes below 1 second; revise after load testing.
 
 ## 7. Data Handling
 

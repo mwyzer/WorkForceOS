@@ -29,6 +29,22 @@
   font-size: 0.9rem;
 }
 
+.home__nav {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.home__link {
+  color: #cfd4de;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  &:hover {
+    color: var(--amber);
+  }
+}
+
 .home__logout {
   font-family: inherit;
   font-size: 0.85rem;
@@ -126,6 +142,35 @@
   font-weight: 600;
   color: var(--ink-text);
   margin: 0 0 1.25rem;
+}
+
+.panel__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+
+  .panel__title {
+    margin: 0;
+  }
+}
+
+.panel__link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--amber-dark);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.stat-card--clickable,
+.dept-bar--clickable,
+.employee-table__row--clickable {
+  cursor: pointer;
 }
 
 .dept-bar {

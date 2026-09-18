@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -37,11 +38,12 @@ class ShiftSwapRequestControllerTests {
                 {
                   "requestingEmployeeId": "%s",
                   "targetEmployeeId": "%s",
-                  "offeredDate": "2026-09-10",
-                  "requestedDate": "2026-09-12",
+                  "offeredDate": "%s",
+                  "requestedDate": "%s",
                   "reason": "Need to swap weekend coverage"
                 }
-                """.formatted(requestingEmployeeId, targetEmployeeId);
+                """.formatted(requestingEmployeeId, targetEmployeeId,
+                LocalDate.now().plusDays(5), LocalDate.now().plusDays(7));
 
         String location = mockMvc.perform(post("/api/v1/shift-swap-requests")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -69,11 +71,12 @@ class ShiftSwapRequestControllerTests {
                 {
                   "requestingEmployeeId": "%s",
                   "targetEmployeeId": "%s",
-                  "offeredDate": "2026-09-10",
-                  "requestedDate": "2026-09-12",
+                  "offeredDate": "%s",
+                  "requestedDate": "%s",
                   "reason": "Swap with self"
                 }
-                """.formatted(employeeId, employeeId);
+                """.formatted(employeeId, employeeId,
+                LocalDate.now().plusDays(5), LocalDate.now().plusDays(7));
 
         mockMvc.perform(post("/api/v1/shift-swap-requests")
                         .contentType(MediaType.APPLICATION_JSON)

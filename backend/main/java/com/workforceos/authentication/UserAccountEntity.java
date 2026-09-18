@@ -3,6 +3,7 @@ package com.workforceos.authentication;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -20,6 +21,9 @@ class UserAccountEntity {
     @Id
     private String username;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -34,14 +38,15 @@ class UserAccountEntity {
     protected UserAccountEntity() {
     }
 
-    UserAccountEntity(String username, String passwordHash, Set<String> roles, boolean active) {
+    UserAccountEntity(String username, UUID organizationId, String passwordHash, Set<String> roles, boolean active) {
         this.username = username;
+        this.organizationId = organizationId;
         this.passwordHash = passwordHash;
         this.roles = new HashSet<>(roles);
         this.active = active;
     }
 
     UserAccount toRecord() {
-        return new UserAccount(username, passwordHash, new LinkedHashSet<>(roles), active);
+        return new UserAccount(username, organizationId, passwordHash, new LinkedHashSet<>(roles), active);
     }
 }

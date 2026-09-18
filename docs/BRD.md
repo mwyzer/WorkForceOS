@@ -8,6 +8,8 @@
 **Primary Technology:** Java 21 + Spring Boot 3
 **Date:** August 2026
 
+> **Implementation status:** the MVP scope described below is largely implemented as a Spring Boot REST API with an Angular frontend. A reusable approval engine, shift swap and attendance correction workflows, notifications, an event bus with a transactional PostgreSQL outbox and optional Kafka relay, observability (request correlation, error contract, metrics, health), and workforce risk intelligence were delivered ahead of the original plan. See the implementation tracking in [SRS.md](SRS.md), [FSD.md](FSD.md), and [ROADMAP.md](ROADMAP.md).
+
 ---
 
 ## 1. Executive Summary

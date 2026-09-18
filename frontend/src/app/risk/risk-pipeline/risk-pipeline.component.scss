@@ -1,0 +1,61 @@
+.pipeline {
+  margin-bottom: 2rem;
+}
+
+.pipeline__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-text);
+  margin: 0 0 1rem;
+}
+
+.pipeline__track {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+.pipeline__stage {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+
+.pipeline__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--ink-950);
+  color: #fff;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.pipeline__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pipeline__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-text);
+}
+
+.pipeline__detail {
+  font-size: 0.72rem;
+  color: var(--muted-on-paper);
+  line-height: 1.35;
+}

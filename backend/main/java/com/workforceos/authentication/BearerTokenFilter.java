@@ -30,7 +30,7 @@ public class BearerTokenFilter extends OncePerRequestFilter {
                 UserAccount user = authService.authenticate(header.substring(7));
                 var authorities = user.roles().stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
                 SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken(user.username(), null, authorities));
+                        new UsernamePasswordAuthenticationToken(user, null, authorities));
             } catch (RuntimeException ignored) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
                 return;

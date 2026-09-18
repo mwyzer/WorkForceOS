@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.workforceos.organization.TenantContextFilter;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -21,6 +23,7 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, BearerTokenFilter bearerTokenFilter,
+            TenantContextFilter tenantContextFilter,
             @Value("${spring.security.enabled:true}") boolean securityEnabled) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -34,7 +37,8 @@ public class SecurityConfig {
                 })
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
                         (request, response, exception) -> response.sendError(401, "Authentication required")))
-                .addFilterBefore(bearerTokenFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(bearerTokenFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(tenantContextFilter, BearerTokenFilter.class);
         return http.build();
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 class ApprovalEngineTests {
 
-    private final ApprovalEngine engine = new ApprovalEngine();
+    private final ApprovalEngine engine = new ApprovalEngine(new InMemoryApprovalStore());
 
     @Test
     void approvesAndRecordsHistoryForAnyRequestType() {

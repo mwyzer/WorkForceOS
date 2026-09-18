@@ -1,6 +1,10 @@
 <div class="home">
   <header class="home__bar">
     <span class="home__brand">WorkforceOS</span>
+    <nav class="home__nav">
+      <a class="home__link" routerLink="/employees">Employees</a>
+      <a class="home__link" routerLink="/risk">Risk intelligence</a>
+    </nav>
     <button type="button" class="home__logout" (click)="logout()">Sign out</button>
   </header>
 
@@ -40,12 +44,34 @@
         <span class="stat-card__value">{{ summary.pendingOvertimeRequests }}</span>
         <span class="stat-card__label">Pending overtime requests</span>
       </div>
+      <div
+        class="stat-card stat-card--clickable"
+        *ngIf="riskSummary as risk"
+        (click)="goToRisk()"
+        title="Open risk intelligence"
+      >
+        <span class="stat-card__value" [style.color]="riskValueColor(risk.riskIndex)">
+          {{ risk.riskIndex }}
+        </span>
+        <span class="stat-card__label">Risk index · {{ risk.highCount }} high</span>
+      </div>
     </section>
 
     <section class="panel-grid">
       <div class="panel">
-        <h2 class="panel__title">Headcount by department</h2>
-        <div class="dept-bar" *ngFor="let dept of summary.departmentBreakdown">
+        <div class="panel__heading">
+          <h2 class="panel__title">Headcount by department</h2>
+          <button type="button" class="panel__link" (click)="goToEmployees()">View employees</button>
+        </div>
+        <div
+          class="dept-bar dept-bar--clickable"
+          *ngFor="let dept of summary.departmentBreakdown"
+          role="button"
+          tabindex="0"
+          (click)="goToEmployees()"
+          (keydown.enter)="goToEmployees()"
+          [title]="dept.departmentName + ': ' + dept.employeeCount + ' (' + departmentShare(dept.employeeCount) + '% of workforce)'"
+        >
           <span class="dept-bar__label">{{ dept.departmentName }}</span>
           <div class="dept-bar__track">
             <div class="dept-bar__fill" [style.width.%]="departmentBarWidth(dept.employeeCount)"></div>
@@ -55,7 +81,10 @@
       </div>
 
       <div class="panel">
-        <h2 class="panel__title">Recently added employees</h2>
+        <div class="panel__heading">
+          <h2 class="panel__title">Recently added employees</h2>
+          <button type="button" class="panel__link" (click)="goToEmployees()">View all</button>
+        </div>
         <table class="employee-table">
           <thead>
             <tr>
@@ -66,7 +95,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let employee of summary.recentEmployees">
+            <tr
+              class="employee-table__row employee-table__row--clickable"
+              *ngFor="let employee of summary.recentEmployees"
+              (click)="goToEmployees()"
+              title="Open employees"
+            >
               <td>
                 <span class="employee-table__name">{{ employee.firstName }} {{ employee.lastName }}</span>
                 <span class="employee-table__number">{{ employee.employeeNumber }}</span>

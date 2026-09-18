@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.organization.OrganizationService;
+
 @Service
 public class AuthService {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
@@ -32,7 +34,13 @@ public class AuthService {
         this.signingKey = signingKey.getBytes(StandardCharsets.UTF_8);
         if (userAccountRepository.count() == 0) {
             userAccountRepository.save(new UserAccountEntity(
-                    adminUsername, passwordEncoder.encode(adminPassword), Set.of("ADMIN"), true));
+                    adminUsername, OrganizationService.DEFAULT_ORGANIZATION_ID,
+                    passwordEncoder.encode(adminPassword), Set.of("ADMIN"), true));
+        }
+        if (userAccountLookupService.findUser("manager") == null) {
+            userAccountRepository.save(new UserAccountEntity(
+                    "manager", OrganizationService.DEFAULT_ORGANIZATION_ID,
+                    passwordEncoder.encode("manager"), Set.of("MANAGER"), true));
         }
     }
 

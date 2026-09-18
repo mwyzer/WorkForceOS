@@ -12,3 +12,7 @@ spring:
     enabled: false
   cache:
     type: simple
+management:
+  health:
+    redis:
+      enabled: false

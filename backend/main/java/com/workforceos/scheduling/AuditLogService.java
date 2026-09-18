@@ -1,15 +1,13 @@
 package com.workforceos.scheduling;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.shared.ValidationUtils;
@@ -17,14 +15,17 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class AuditLogService {
 
-    private final ConcurrentMap<UUID, AuditLog> auditLogs = new ConcurrentHashMap<>();
+    private final AuditLogStore auditLogStore;
 
-    public List<AuditLog> findAll() {
-        return auditLogs.values().stream()
-                .sorted(Comparator.comparing(AuditLog::timestamp).reversed())
-                .toList();
+    public AuditLogService(AuditLogStore auditLogStore) {
+        this.auditLogStore = auditLogStore;
     }
 
+    public List<AuditLog> findAll() {
+        return auditLogStore.findAll();
+    }
+
+    @Transactional
     public AuditLog create(AuditLogRequest request) {
         validateRequest(request);
 
@@ -37,16 +38,12 @@ public class AuditLogService {
                 normalizeDetails(request.details()),
                 Instant.now());
 
-        auditLogs.put(auditLog.id(), auditLog);
-        return auditLog;
+        return auditLogStore.save(auditLog);
     }
 
     public AuditLog findById(UUID id) {
-        AuditLog auditLog = auditLogs.get(id);
-        if (auditLog == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Audit log not found");
-        }
-        return auditLog;
+        return auditLogStore.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audit log not found"));
     }
 
     private void validateRequest(AuditLogRequest request) {

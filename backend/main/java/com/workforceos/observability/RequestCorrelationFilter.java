@@ -34,6 +34,11 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
         }
         CorrelationContext.start(requestId, request.getHeader("traceparent"));
 
+        String traceId = CorrelationContext.traceId();
+        String spanId = CorrelationContext.newSpanId();
+        setHeaderIfPossible(response, "X-Request-Id", requestId);
+        setHeaderIfPossible(response, "traceparent", "00-" + traceId + "-" + spanId + "-01");
+
         StatusCapturingResponse statusResponse = new StatusCapturingResponse(response);
         long startNanos = System.nanoTime();
         try {
@@ -41,15 +46,11 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
         } finally {
             actorFrom(SecurityContextHolder.getContext().getAuthentication()).ifPresent(CorrelationContext::actor);
             long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            String traceId = CorrelationContext.traceId();
-            String spanId = CorrelationContext.newSpanId();
             LOGGER.info(
                     "request method={} path={} query={} status={} durationMs={} actor={}",
                     request.getMethod(), request.getRequestURI(),
                     Optional.ofNullable(request.getQueryString()).orElse(""),
                     statusResponse.getStatus(), durationMs, CorrelationContext.actor());
-            setHeaderIfPossible(response, "X-Request-Id", requestId);
-            setHeaderIfPossible(response, "traceparent", "00-" + traceId + "-" + spanId + "-01");
             CorrelationContext.clear();
         }
     }

@@ -18,4 +18,9 @@ public class DashboardController {
     public DashboardSummary getSummary() {
         return dashboardService.getSummary();
     }
+
+    @GetMapping("/operations")
+    public DashboardOperations getOperations() {
+        return dashboardService.getOperations();
+    }
 }

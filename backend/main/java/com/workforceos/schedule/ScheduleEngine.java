@@ -5,11 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.event.DomainEvent;
@@ -23,65 +22,60 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class ScheduleEngine {
 
+    private final ShiftTemplateStore shiftStore;
+    private final RosterStore rosterStore;
+    private final RosterAssignmentStore assignmentStore;
     private final EventPublisher eventPublisher;
     private final CurrentUser currentUser;
-    private final ConcurrentMap<UUID, ShiftTemplate> shifts = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, Roster> rosters = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, ConcurrentMap<UUID, RosterAssignment>> assignmentsByRoster = new ConcurrentHashMap<>();
 
-    public ScheduleEngine(EventPublisher eventPublisher, CurrentUser currentUser) {
+    public ScheduleEngine(ShiftTemplateStore shiftStore, RosterStore rosterStore,
+            RosterAssignmentStore assignmentStore, EventPublisher eventPublisher, CurrentUser currentUser) {
+        this.shiftStore = shiftStore;
+        this.rosterStore = rosterStore;
+        this.assignmentStore = assignmentStore;
         this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
     }
 
     public List<ShiftTemplate> findAllShifts() {
-        return shifts.values().stream().toList();
+        return shiftStore.findAll();
     }
 
     public ShiftTemplate findShift(UUID id) {
-        ShiftTemplate shift = shifts.get(id);
-        if (shift == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift template not found");
-        }
-        return shift;
+        return shiftStore.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift template not found"));
     }
 
+    @Transactional
     public ShiftTemplate createShift(ShiftTemplateRequest request) {
         validateShift(request);
-        ShiftTemplate shift = toShift(UUID.randomUUID(), request);
-        shifts.put(shift.id(), shift);
-        return shift;
+        return shiftStore.save(toShift(UUID.randomUUID(), request));
     }
 
+    @Transactional
     public ShiftTemplate updateShift(UUID id, ShiftTemplateRequest request) {
         findShift(id);
         validateShift(request);
-        ShiftTemplate shift = toShift(id, request);
-        shifts.put(id, shift);
-        return shift;
+        return shiftStore.save(toShift(id, request));
     }
 
     public List<Roster> findAllRosters() {
-        return rosters.values().stream().toList();
+        return rosterStore.findAll();
     }
 
     public Roster findRoster(UUID id) {
-        Roster roster = rosters.get(id);
-        if (roster == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Roster not found");
-        }
-        return roster;
+        return rosterStore.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Roster not found"));
     }
 
+    @Transactional
     public Roster createRoster(RosterRequest request) {
         validateRoster(request);
-        Roster roster = new Roster(UUID.randomUUID(), request.organizationId(), request.name().trim(),
-                RosterStatus.DRAFT, java.time.OffsetDateTime.now(), true);
-        rosters.put(roster.id(), roster);
-        assignmentsByRoster.put(roster.id(), new ConcurrentHashMap<>());
-        return roster;
+        return rosterStore.save(new Roster(UUID.randomUUID(), request.organizationId(), request.name().trim(),
+                RosterStatus.DRAFT, java.time.OffsetDateTime.now(), true));
     }
 
+    @Transactional
     public Roster publishRoster(UUID id) {
         Roster roster = findRoster(id);
         if (roster.status() != RosterStatus.DRAFT) {
@@ -89,7 +83,7 @@ public class ScheduleEngine {
         }
         Roster published = new Roster(roster.id(), roster.organizationId(), roster.name(), RosterStatus.PUBLISHED,
                 roster.createdAt(), roster.active());
-        rosters.put(id, published);
+        rosterStore.save(published);
 
         DomainEvent event = DomainEvents.of(EventTypes.ROSTER_PUBLISHED, published.organizationId(), "Roster",
                 published.id(), currentUser.username(),
@@ -103,44 +97,40 @@ public class ScheduleEngine {
 
     public List<RosterAssignment> findAssignments(UUID rosterId) {
         findRoster(rosterId);
-        ConcurrentMap<UUID, RosterAssignment> assignments = assignmentsByRoster.get(rosterId);
-        return assignments == null ? List.of() : List.copyOf(assignments.values());
+        return assignmentStore.findByRosterId(rosterId);
     }
 
     public List<RosterAssignment> findAllAssignments() {
-        return assignmentsByRoster.values().stream()
-                .flatMap(assignments -> assignments.values().stream())
-                .toList();
+        return assignmentStore.findAll();
     }
 
+    @Transactional
     public RosterAssignment addAssignment(UUID rosterId, RosterAssignmentRequest request) {
         findRoster(rosterId);
         validateAssignment(request);
 
-        ConcurrentMap<UUID, RosterAssignment> rosterAssignments = assignmentsByRoster.computeIfAbsent(rosterId,
-                ignored -> new ConcurrentHashMap<>());
-
-        synchronized (rosterAssignments) {
-            boolean overlaps = rosterAssignments.values().stream()
-                    .filter(assignment -> assignment.employeeId().equals(request.employeeId()) && assignment.active())
-                    .anyMatch(assignment -> request.start().isBefore(assignment.end()) && request.end().isAfter(assignment.start()));
-            if (overlaps) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee has overlapping roster assignments");
-            }
-
-            RosterAssignment assignment = new RosterAssignment(UUID.randomUUID(), rosterId, request.employeeId(),
-                    request.shiftTemplateId(), request.start(), request.end(), true);
-            rosterAssignments.put(assignment.id(), assignment);
-            return assignment;
+        boolean overlaps = assignmentStore.findByRosterId(rosterId).stream()
+                .filter(assignment -> assignment.employeeId().equals(request.employeeId()) && assignment.active())
+                .anyMatch(assignment -> request.start().isBefore(assignment.end())
+                        && request.end().isAfter(assignment.start()));
+        if (overlaps) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee has overlapping roster assignments");
         }
+
+        RosterAssignment assignment = new RosterAssignment(UUID.randomUUID(), rosterId, request.employeeId(),
+                request.shiftTemplateId(), request.start(), request.end(), true);
+        return assignmentStore.save(assignment);
     }
 
+    @Transactional
     public void removeAssignment(UUID rosterId, UUID assignmentId) {
         findRoster(rosterId);
-        ConcurrentMap<UUID, RosterAssignment> rosterAssignments = assignmentsByRoster.get(rosterId);
-        if (rosterAssignments == null || rosterAssignments.remove(assignmentId) == null) {
+        boolean exists = assignmentStore.findByRosterId(rosterId).stream()
+                .anyMatch(assignment -> assignment.id().equals(assignmentId));
+        if (!exists) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Roster assignment not found");
         }
+        assignmentStore.delete(assignmentId);
     }
 
     public List<ScheduleConflict> findConflicts() {

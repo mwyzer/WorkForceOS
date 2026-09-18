@@ -1,6 +1,6 @@
 # WorkforceOS Test Plan
 
-**Status:** Draft | **Scope:** MVP and platform foundations
+**Status:** Draft | **Scope:** MVP and platform foundations | **Implementation:** unit and controller suites run via Maven Surefire against the `test` profile (H2); Testcontainers/PostgreSQL integration suites are not yet wired
 
 ## 1. Objectives
 
@@ -13,7 +13,7 @@ Verify business rules, authorization, data integrity, API compatibility, reliabi
 - **API contract**: request/response schemas, status codes, error contract, pagination, and authentication.
 - **End-to-end**: employee, manager, supervisor, HR, and admin workflows across module boundaries.
 - **Security**: authentication failures, RBAC, resource scope, injection, secrets, headers, rate limiting, and audit coverage.
-- **Performance**: p95 latency, concurrent attendance commands, pagination, report queries, and event throughput when enabled.
+- **Performance**: p95 latency, concurrent attendance commands, pagination, report queries, and event throughput when enabled. Automated gate: `PerformanceSmokeTests` measures sequential p95 across representative read endpoints (budget: p95 < 1 s, single request < 2 s) and a 64-way concurrent burst that must all succeed within 5 s. Real figures come from a load harness (Gatling or JMeter) run against the Docker Compose stack: script a 5-minute soak of the read/report endpoints at 50 concurrent users plus a burst to 200 users, and capture the PRD targets — p95 reads < 500 ms, p95 writes < 1 s, concurrent attendance commands — before release.
 - **Resilience**: database outage, retry, duplicate delivery, dependency timeout, malformed event, and restart recovery.
 
 ## 3. Core Scenarios
@@ -34,7 +34,7 @@ Use isolated organizations, users for every role, active/inactive employees, day
 
 ## 5. Automation and Environments
 
-Run unit and static checks on every change. Run integration and contract suites in CI with an ephemeral PostgreSQL instance. Run end-to-end, security, performance, and resilience suites before release and after material infrastructure changes. Exact tools and CI provider are TBD.
+Run unit and static checks on every change (`mvn test`). The current suite runs with the `test` Spring profile against an embedded H2 database; it covers the schedule engine, attendance engine and calculation, approval engine, risk rules/impact/advisor/persistence/API, event publisher and outbox architecture, the Kafka relay, observability (error contract, correlation headers, health indicator), organization/tenant isolation, and the operational controllers. `PersistenceIntegrationTests` runs the real JPA stores and Kafka relay against an H2 PostgreSQL-mode database with Flyway migrations and Hibernate `ddl-auto=validate`, mirroring the production startup path. `PerformanceSmokeTests` enforces a per-build latency/concurrency gate with generous budgets. PostgreSQL-backed integration tests (Testcontainers, e.g. embedded Kafka) and contract suites are planned for CI. Run end-to-end, security, performance, and resilience suites before release and after material infrastructure changes. Exact CI provider is TBD.
 
 ## 6. Defect Severity
 

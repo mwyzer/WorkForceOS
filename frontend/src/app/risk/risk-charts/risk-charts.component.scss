@@ -1,0 +1,213 @@
+:host {
+  display: block;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.charts__empty {
+  grid-column: 1 / -1;
+  color: var(--muted-on-paper);
+  background: #fff;
+  border: 1px dashed var(--paper-line);
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  margin: 0;
+}
+
+.chart {
+  background: #fff;
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  min-width: 0;
+}
+
+.chart--trend {
+  grid-column: 1 / -1;
+}
+
+.chart__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-text);
+  margin: 0 0 0.8rem;
+}
+
+.stack {
+  display: flex;
+  height: 1.4rem;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.stack__segment {
+  border: none;
+  padding: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  min-width: 2.2rem;
+
+  &--clickable {
+    cursor: pointer;
+  }
+
+  &--active {
+    outline: 2px solid var(--ink-950);
+    outline-offset: -2px;
+  }
+}
+
+.bar--high {
+  background: var(--red);
+
+  &:hover {
+    background: var(--red-dark);
+  }
+}
+
+.bar--medium {
+  background: var(--amber);
+
+  &:hover {
+    background: var(--amber-dark);
+  }
+}
+
+.bar--low {
+  background: var(--green);
+}
+
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted-on-paper);
+}
+
+.legend__dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+}
+
+.hbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.4fr 1.6rem;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover .hbar__fill {
+    opacity: 0.8;
+  }
+
+  &--active .hbar__fill {
+    outline: 2px solid var(--ink-950);
+    outline-offset: 1px;
+  }
+}
+
+.hbar__label {
+  font-size: 0.78rem;
+  color: var(--ink-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hbar__track {
+  height: 0.55rem;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hbar__fill {
+  height: 100%;
+  display: block;
+
+  &--amber {
+    background: var(--amber);
+  }
+
+  &--ink {
+    background: var(--ink-950);
+  }
+}
+
+.hbar__count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--muted-on-paper);
+  text-align: right;
+}
+
+.vbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 8rem;
+}
+
+.vbar__col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.vbar__bar {
+  width: 100%;
+  max-width: 2.2rem;
+  min-height: 2px;
+  background: var(--paper-line);
+  border-radius: 3px 3px 0 0;
+
+  &--high {
+    background: var(--red);
+  }
+
+  &--medium {
+    background: var(--amber);
+  }
+}
+
+.vbar__axis {
+  margin-top: 0.3rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted-on-paper);
+  white-space: nowrap;
+}

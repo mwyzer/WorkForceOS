@@ -11,6 +11,9 @@ public final class EventTypes {
     public static final String OVERTIME_REJECTED = "OvertimeRejected";
     public static final String HANDOVER_SUBMITTED = "HandoverSubmitted";
     public static final String HANDOVER_ACKNOWLEDGED = "HandoverAcknowledged";
+    public static final String EMPLOYEE_DEACTIVATED = "EmployeeDeactivated";
+    public static final String COVERAGE_RISK_DETECTED = "CoverageRiskDetected";
+    public static final String WORKFORCE_RISK_ELEVATED = "WorkforceRiskElevated";
 
     private EventTypes() {
     }

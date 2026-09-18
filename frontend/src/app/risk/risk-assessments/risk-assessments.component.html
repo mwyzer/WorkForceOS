@@ -1,0 +1,133 @@
+<div class="assessments">
+  <div class="assessments__heading">
+    <h2 class="assessments__title">Assessments</h2>
+    <span class="assessments__count" *ngIf="assessments.length">
+      {{ rows.length }} of {{ assessments.length }} shown
+    </span>
+  </div>
+
+  <div class="filters" *ngIf="assessments.length">
+    <input
+      type="search"
+      class="filters__search"
+      placeholder="Search assessments…"
+      [(ngModel)]="search"
+    />
+    <button
+      *ngFor="let severity of ['HIGH', 'MEDIUM', 'LOW']"
+      type="button"
+      class="filters__chip"
+      [class.filters__chip--active]="severityFilter === severity"
+      (click)="toggleSeverity(severity)"
+    >
+      {{ severity }}
+    </button>
+    <button
+      *ngFor="let entry of risksByType | keyvalue"
+      type="button"
+      class="filters__chip filters__chip--type"
+      [class.filters__chip--active]="typeFilter === entry.key"
+      (click)="toggleType(entry.key)"
+    >
+      {{ humanType(entry.key) }}
+    </button>
+    <select
+      class="filters__select"
+      [ngModel]="departmentFilter"
+      (ngModelChange)="toggleDepartmentSelection($event)"
+    >
+      <option value="ALL">All departments</option>
+      <option *ngFor="let department of departments" [value]="department.id">
+        {{ department.name }}
+      </option>
+    </select>
+    <button
+      type="button"
+      class="filters__reset"
+      *ngIf="hasActiveFilter"
+      (click)="resetAllFilters()"
+    >
+      Reset
+    </button>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>
+          <button type="button" class="table__sort" (click)="sortBy('type')">
+            Risk <span class="table__sort-arrow">{{ sortIndicator('type') }}</span>
+          </button>
+        </th>
+        <th>
+          <button type="button" class="table__sort" (click)="sortBy('severity')">
+            Severity <span class="table__sort-arrow">{{ sortIndicator('severity') }}</span>
+          </button>
+        </th>
+        <th>
+          <button type="button" class="table__sort" (click)="sortBy('score')">
+            Score <span class="table__sort-arrow">{{ sortIndicator('score') }}</span>
+          </button>
+        </th>
+        <th>Department</th>
+        <th>Summary</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <ng-container *ngFor="let row of rows">
+        <tr>
+          <td>{{ humanType(row.type) }}</td>
+          <td><span [class]="severityClass(row.severity)">{{ row.severity }}</span></td>
+          <td>{{ row.score }}</td>
+          <td>{{ departmentName(row.departmentId) }}</td>
+          <td>{{ row.summary }}</td>
+          <td>
+            <button type="button" class="assessments__toggle" (click)="toggleAssessment(row.id)">
+              {{ isExpanded(row.id) ? 'Hide' : 'Show' }}
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="isExpanded(row.id)" class="table__detail">
+          <td colspan="6">
+            <div class="drawer">
+              <div *ngIf="row.evidence.length" class="drawer__block">
+                <span class="drawer__label">Evidence</span>
+                <ul class="drawer__list">
+                  <li *ngFor="let item of row.evidence">{{ item }}</li>
+                </ul>
+              </div>
+              <div *ngIf="loadingRecommendations(row.id)">Loading recommendations…</div>
+              <ul class="rec-list" *ngIf="!loadingRecommendations(row.id)">
+                <li class="rec-list__item" *ngFor="let recommendation of recommendations(row.id)">
+                  <span class="rec-list__title">{{ recommendation.title }}</span>
+                  <span class="rec-list__detail">
+                    {{ recommendation.description }}
+                    <a
+                      *ngIf="recommendation.actionEndpoint"
+                      class="rec-list__link"
+                      [href]="recommendation.actionEndpoint"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Open action
+                    </a>
+                  </span>
+                </li>
+                <li *ngIf="recommendations(row.id).length === 0" class="rec-list__item">
+                  No recommended actions for this risk.
+                </li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
+      <tr *ngIf="rows.length === 0 && assessments.length > 0">
+        <td colspan="6" class="table__empty">No assessments match the current filters.</td>
+      </tr>
+      <tr *ngIf="assessments.length === 0">
+        <td colspan="6" class="table__empty">No risk assessments recorded yet.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

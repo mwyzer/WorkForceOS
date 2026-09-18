@@ -1,15 +1,13 @@
 package com.workforceos.attendance;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.event.DomainEvent;
@@ -27,25 +25,29 @@ public class AttendanceEngine {
 
     private final ScheduleEngine scheduleEngine;
     private final AttendanceCalculator calculator;
+    private final AttendanceSessionStore sessionStore;
     private final EventPublisher eventPublisher;
     private final CurrentUser currentUser;
-    private final ConcurrentMap<UUID, AttendanceSession> activeSessions = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, List<AttendanceSession>> employeeHistory = new ConcurrentHashMap<>();
 
     public AttendanceEngine(ScheduleEngine scheduleEngine, AttendanceCalculator calculator,
-            EventPublisher eventPublisher, CurrentUser currentUser) {
+            AttendanceSessionStore sessionStore, EventPublisher eventPublisher, CurrentUser currentUser) {
         this.scheduleEngine = scheduleEngine;
         this.calculator = calculator;
+        this.sessionStore = sessionStore;
         this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
     }
 
+    @Transactional
     public AttendanceSession clockIn(AttendanceRequest request) {
         validateRequest(request);
 
         RosterAssignment assignment = findEligibleAssignment(request.employeeId(), request.occurredAt());
         if (assignment == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee is not eligible to clock in at the specified time");
+        }
+        if (sessionStore.findActiveByEmployeeId(request.employeeId()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already has an active attendance session");
         }
 
         AttendanceSession session = new AttendanceSession(
@@ -57,10 +59,7 @@ public class AttendanceEngine {
                 null,
                 true);
 
-        if (activeSessions.putIfAbsent(request.employeeId(), session) != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already has an active attendance session");
-        }
-        employeeHistory.computeIfAbsent(request.employeeId(), ignored -> new ArrayList<>()).add(session);
+        sessionStore.save(session);
 
         eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_IN, null, "AttendanceSession",
                 session.id(), currentUser.username(),
@@ -72,13 +71,13 @@ public class AttendanceEngine {
         return session;
     }
 
+    @Transactional
     public AttendanceSession clockOut(AttendanceRequest request) {
         validateRequest(request);
 
-        AttendanceSession activeSession = activeSessions.get(request.employeeId());
-        if (activeSession == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee does not have an active attendance session");
-        }
+        AttendanceSession activeSession = sessionStore.findActiveByEmployeeId(request.employeeId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Employee does not have an active attendance session"));
 
         AttendanceSession closed = new AttendanceSession(
                 activeSession.id(),
@@ -89,8 +88,7 @@ public class AttendanceEngine {
                 request.occurredAt(),
                 false);
 
-        activeSessions.remove(request.employeeId());
-        employeeHistory.computeIfAbsent(request.employeeId(), ignored -> new ArrayList<>()).add(closed);
+        sessionStore.save(closed);
 
         eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_OUT, null, "AttendanceSession",
                 closed.id(), currentUser.username(),
@@ -107,11 +105,11 @@ public class AttendanceEngine {
         if (employeeId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee ID is required");
         }
-        return employeeHistory.getOrDefault(employeeId, List.of());
+        return sessionStore.findByEmployeeId(employeeId);
     }
 
     public List<AttendanceSession> findAllSessions() {
-        return employeeHistory.values().stream().flatMap(List::stream).toList();
+        return sessionStore.findAll();
     }
 
     public AttendanceCalculation calculate(AttendanceSession session) {

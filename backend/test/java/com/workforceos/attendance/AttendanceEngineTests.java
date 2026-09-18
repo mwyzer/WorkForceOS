@@ -12,7 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.event.EventPublisher;
+import com.workforceos.event.InMemoryOutboxStore;
 import com.workforceos.event.OutboxStore;
+import com.workforceos.schedule.InMemoryRosterAssignmentStore;
+import com.workforceos.schedule.InMemoryRosterStore;
+import com.workforceos.schedule.InMemoryShiftTemplateStore;
 import com.workforceos.schedule.RosterRequest;
 import com.workforceos.schedule.RosterAssignmentRequest;
 import com.workforceos.schedule.ScheduleEngine;
@@ -20,12 +24,14 @@ import com.workforceos.shared.CurrentUser;
 
 class AttendanceEngineTests {
 
-    private final OutboxStore outbox = new OutboxStore();
+    private final OutboxStore outbox = new InMemoryOutboxStore();
     private final EventPublisher publisher = new EventPublisher(outbox, List.of());
-    private final ScheduleEngine scheduleEngine = new ScheduleEngine(new EventPublisher(new OutboxStore(), List.of()),
-            new CurrentUser());
+    private final ScheduleEngine scheduleEngine = new ScheduleEngine(new InMemoryShiftTemplateStore(),
+            new InMemoryRosterStore(), new InMemoryRosterAssignmentStore(),
+            new EventPublisher(new InMemoryOutboxStore(), List.of()), new CurrentUser());
     private final AttendanceCalculator calculator = new AttendanceCalculator(scheduleEngine);
-    private final AttendanceEngine engine = new AttendanceEngine(scheduleEngine, calculator, publisher, new CurrentUser());
+    private final AttendanceEngine engine = new AttendanceEngine(scheduleEngine, calculator,
+            new InMemoryAttendanceSessionStore(), publisher, new CurrentUser());
 
     @Test
     void clockInRequiresAnEligiblePublishedAssignment() {

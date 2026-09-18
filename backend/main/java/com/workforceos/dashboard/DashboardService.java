@@ -9,7 +9,13 @@ import java.util.stream.Collectors;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import com.workforceos.scheduling.HandoverService;
+import com.workforceos.scheduling.HandoverStatus;
+import com.workforceos.scheduling.Notification;
+import com.workforceos.scheduling.NotificationService;
 import com.workforceos.scheduling.ReportService;
+import com.workforceos.schedule.RosterStatus;
+import com.workforceos.schedule.ScheduleEngine;
 import com.workforceos.workforce.Department;
 import com.workforceos.workforce.DepartmentService;
 import com.workforceos.workforce.Employee;
@@ -21,19 +27,27 @@ import com.workforceos.workforce.TeamService;
 public class DashboardService {
 
     private static final int RECENT_EMPLOYEE_LIMIT = 8;
+    private static final int RECENT_NOTIFICATION_LIMIT = 8;
     private static final String UNASSIGNED = "Unassigned";
 
     private final EmployeeService employeeService;
     private final DepartmentService departmentService;
     private final TeamService teamService;
     private final ReportService reportService;
+    private final NotificationService notificationService;
+    private final HandoverService handoverService;
+    private final ScheduleEngine scheduleEngine;
 
     public DashboardService(EmployeeService employeeService, DepartmentService departmentService,
-            TeamService teamService, ReportService reportService) {
+            TeamService teamService, ReportService reportService, NotificationService notificationService,
+            HandoverService handoverService, ScheduleEngine scheduleEngine) {
         this.employeeService = employeeService;
         this.departmentService = departmentService;
         this.teamService = teamService;
         this.reportService = reportService;
+        this.notificationService = notificationService;
+        this.handoverService = handoverService;
+        this.scheduleEngine = scheduleEngine;
     }
 
     @Cacheable("dashboard-summary")
@@ -81,5 +95,34 @@ public class DashboardService {
                 reportService.getOvertimeRequestReport().pending(),
                 departmentBreakdown,
                 recentEmployees);
+    }
+
+    @Cacheable("dashboard-operations")
+    public DashboardOperations getOperations() {
+        long pendingHandovers = handoverService.findAll().stream()
+                .filter(handover -> handover.status() == HandoverStatus.SUBMITTED)
+                .count();
+        long publishedRosters = scheduleEngine.findAllRosters().stream()
+                .filter(roster -> roster.status() == RosterStatus.PUBLISHED)
+                .count();
+
+        List<RecentNotification> recentNotifications = notificationService.findAll().stream()
+                .sorted(Comparator.comparing(Notification::createdAt).reversed())
+                .limit(RECENT_NOTIFICATION_LIMIT)
+                .map(notification -> new RecentNotification(
+                        notification.id(),
+                        notification.recipientId(),
+                        notification.type(),
+                        notification.title(),
+                        notification.status(),
+                        notification.createdAt()))
+                .toList();
+
+        return new DashboardOperations(
+                reportService.getLeaveRequestReport().pending(),
+                reportService.getOvertimeRequestReport().pending(),
+                pendingHandovers,
+                publishedRosters,
+                recentNotifications);
     }
 }

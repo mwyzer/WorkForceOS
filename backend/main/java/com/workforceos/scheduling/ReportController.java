@@ -1,5 +1,7 @@
 package com.workforceos.scheduling;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,5 +36,20 @@ public class ReportController {
     @GetMapping("/audit-summary")
     public AuditLogSummary getAuditLogSummary() {
         return reportService.getAuditLogSummary();
+    }
+
+    @GetMapping("/attendance-by-employee")
+    public List<AttendanceByEmployeeReport> getAttendanceByEmployeeReport() {
+        return reportService.getAttendanceByEmployeeReport();
+    }
+
+    @GetMapping("/overtime-by-employee")
+    public List<OvertimeByEmployeeReport> getOvertimeByEmployeeReport() {
+        return reportService.getOvertimeByEmployeeReport();
+    }
+
+    @GetMapping("/department-staffing")
+    public List<DepartmentStaffingReport> getDepartmentStaffingReport() {
+        return reportService.getDepartmentStaffingReport();
     }
 }

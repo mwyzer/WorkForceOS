@@ -47,7 +47,7 @@ class NotificationControllerTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.recipientId").value(recipientId.toString()))
                 .andExpect(jsonPath("$.type").value("LEAVE_APPROVED"))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.status").value("DELIVERED"));
 
         mockMvc.perform(get("/api/v1/notifications"))
                 .andExpect(status().isOk())

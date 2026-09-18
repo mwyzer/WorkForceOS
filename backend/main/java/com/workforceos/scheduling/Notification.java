@@ -11,5 +11,23 @@ public record Notification(
         String body,
         NotificationChannel channel,
         NotificationStatus status,
-        Instant createdAt) {
+        Instant createdAt,
+        int attemptCount,
+        Instant nextAttemptAt,
+        String lastError) {
+
+    Notification delivered() {
+        return new Notification(id, recipientId, type, title, body, channel,
+                NotificationStatus.DELIVERED, createdAt, attemptCount, nextAttemptAt, lastError);
+    }
+
+    Notification sent() {
+        return new Notification(id, recipientId, type, title, body, channel,
+                NotificationStatus.SENT, createdAt, attemptCount, nextAttemptAt, lastError);
+    }
+
+    Notification failed(String error, Instant nextAttempt) {
+        return new Notification(id, recipientId, type, title, body, channel,
+                NotificationStatus.FAILED, createdAt, attemptCount + 1, nextAttempt, error);
+    }
 }

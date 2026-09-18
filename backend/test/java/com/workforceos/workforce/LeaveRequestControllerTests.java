@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -34,11 +35,11 @@ class LeaveRequestControllerTests {
         String request = """
                 {
                   "employeeId": "%s",
-                  "startDate": "2026-09-10",
-                  "endDate": "2026-09-12",
+                  "startDate": "%s",
+                  "endDate": "%s",
                   "reason": "Family emergency"
                 }
-                """.formatted(employeeId);
+                """.formatted(employeeId, LocalDate.now().plusDays(5), LocalDate.now().plusDays(7));
 
         String location = mockMvc.perform(post("/api/v1/leave-requests")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -63,11 +64,11 @@ class LeaveRequestControllerTests {
         String request = """
                 {
                   "employeeId": "%s",
-                  "startDate": "2026-09-15",
-                  "endDate": "2026-09-12",
+                  "startDate": "%s",
+                  "endDate": "%s",
                   "reason": "Invalid date range"
                 }
-                """.formatted(UUID.randomUUID());
+                """.formatted(UUID.randomUUID(), LocalDate.now().plusDays(5), LocalDate.now().plusDays(3));
 
         mockMvc.perform(post("/api/v1/leave-requests")
                         .contentType(MediaType.APPLICATION_JSON)

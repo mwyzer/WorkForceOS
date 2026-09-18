@@ -1,14 +1,12 @@
 package com.workforceos.approval;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -22,16 +20,21 @@ public class ApprovalEngine {
             boolean open) {
     }
 
-    private final ConcurrentMap<UUID, ApprovalFlow> flows = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, List<ApprovalAction>> history = new ConcurrentHashMap<>();
+    private final ApprovalStore approvalStore;
 
+    public ApprovalEngine(ApprovalStore approvalStore) {
+        this.approvalStore = approvalStore;
+    }
+
+    @Transactional
     public void register(UUID requestId, String requestType, UUID subjectId, String registrar) {
         if (requestId == null || requestType == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request ID and request type are required");
         }
-        flows.put(requestId, new ApprovalFlow(requestId, requestType, subjectId, registrar, true));
+        approvalStore.saveFlow(new ApprovalFlow(requestId, requestType, subjectId, registrar, true));
     }
 
+    @Transactional
     public ApprovalAction decide(UUID requestId, ApprovalDecision decision, String actorId, String reason) {
         if (requestId == null || decision == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request ID and decision are required");
@@ -40,10 +43,8 @@ public class ApprovalEngine {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pending is not a decision");
         }
 
-        ApprovalFlow flow = flows.get(requestId);
-        if (flow == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Approval flow not found");
-        }
+        ApprovalFlow flow = approvalStore.findFlow(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Approval flow not found"));
         if (!flow.open()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Request has already been decided");
         }
@@ -53,24 +54,22 @@ public class ApprovalEngine {
 
         ApprovalAction action = new ApprovalAction(requestId, flow.requestType(), decision, actorId,
                 OffsetDateTime.now(), reason);
-        history.computeIfAbsent(requestId, ignored -> new ArrayList<>()).add(action);
-        flows.put(requestId, new ApprovalFlow(requestId, flow.requestType(), flow.subjectId(), flow.registrar(), false));
+        approvalStore.saveAction(action);
+        approvalStore.saveFlow(new ApprovalFlow(requestId, flow.requestType(), flow.subjectId(), flow.registrar(),
+                false));
         return action;
     }
 
     public ApprovalFlow flow(UUID requestId) {
-        ApprovalFlow flow = flows.get(requestId);
-        if (flow == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Approval flow not found");
-        }
-        return flow;
+        return approvalStore.findFlow(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Approval flow not found"));
     }
 
     public List<ApprovalAction> history(UUID requestId) {
-        return List.copyOf(history.getOrDefault(requestId, List.of()));
+        return approvalStore.findHistory(requestId);
     }
 
     public List<ApprovalAction> findAllHistory() {
-        return history.values().stream().flatMap(List::stream).toList();
+        return approvalStore.findAllHistory();
     }
 }

@@ -3,11 +3,10 @@ package com.workforceos.scheduling;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.approval.ApprovalDecision;
@@ -18,19 +17,22 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class ShiftSwapRequestService {
 
-    private final ConcurrentMap<UUID, ShiftSwapRequest> shiftSwapRequests = new ConcurrentHashMap<>();
+    private final ShiftSwapRequestStore shiftSwapRequestStore;
     private final ApprovalEngine approvalEngine;
     private final CurrentUser currentUser;
 
-    public ShiftSwapRequestService(ApprovalEngine approvalEngine, CurrentUser currentUser) {
+    public ShiftSwapRequestService(ShiftSwapRequestStore shiftSwapRequestStore, ApprovalEngine approvalEngine,
+            CurrentUser currentUser) {
+        this.shiftSwapRequestStore = shiftSwapRequestStore;
         this.approvalEngine = approvalEngine;
         this.currentUser = currentUser;
     }
 
     public List<ShiftSwapRequest> findAll() {
-        return shiftSwapRequests.values().stream().toList();
+        return shiftSwapRequestStore.findAll();
     }
 
+    @Transactional
     public ShiftSwapRequest create(ShiftSwapRequestRequest request) {
         validateRequest(request);
 
@@ -43,11 +45,12 @@ public class ShiftSwapRequestService {
                 request.reason().trim(),
                 ShiftSwapRequestStatus.PENDING);
 
-        shiftSwapRequests.put(shiftSwapRequest.id(), shiftSwapRequest);
+        shiftSwapRequestStore.save(shiftSwapRequest);
         approvalEngine.register(shiftSwapRequest.id(), "SHIFT_SWAP", request.requestingEmployeeId(), currentUser.username());
         return shiftSwapRequest;
     }
 
+    @Transactional
     public ShiftSwapRequest approve(UUID id) {
         ShiftSwapRequest shiftSwapRequest = findById(id);
         if (shiftSwapRequest.status() != ShiftSwapRequestStatus.PENDING) {
@@ -62,10 +65,10 @@ public class ShiftSwapRequestService {
                 shiftSwapRequest.requestedDate(),
                 shiftSwapRequest.reason(),
                 ShiftSwapRequestStatus.APPROVED);
-        shiftSwapRequests.put(id, approved);
-        return approved;
+        return shiftSwapRequestStore.save(approved);
     }
 
+    @Transactional
     public ShiftSwapRequest reject(UUID id) {
         ShiftSwapRequest shiftSwapRequest = findById(id);
         if (shiftSwapRequest.status() != ShiftSwapRequestStatus.PENDING) {
@@ -80,16 +83,12 @@ public class ShiftSwapRequestService {
                 shiftSwapRequest.requestedDate(),
                 shiftSwapRequest.reason(),
                 ShiftSwapRequestStatus.REJECTED);
-        shiftSwapRequests.put(id, rejected);
-        return rejected;
+        return shiftSwapRequestStore.save(rejected);
     }
 
     public ShiftSwapRequest findById(UUID id) {
-        ShiftSwapRequest shiftSwapRequest = shiftSwapRequests.get(id);
-        if (shiftSwapRequest == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift swap request not found");
-        }
-        return shiftSwapRequest;
+        return shiftSwapRequestStore.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift swap request not found"));
     }
 
     private void validateRequest(ShiftSwapRequestRequest request) {

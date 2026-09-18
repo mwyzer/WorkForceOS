@@ -54,6 +54,14 @@ class EmployeeEntity {
         this.active = false;
     }
 
+    void update(String firstName, String lastName, String email, UUID departmentId, UUID teamId) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.departmentId = departmentId;
+        this.teamId = teamId;
+    }
+
     Employee toRecord() {
         return new Employee(id, employeeNumber, firstName, lastName, email, departmentId, teamId, active);
     }

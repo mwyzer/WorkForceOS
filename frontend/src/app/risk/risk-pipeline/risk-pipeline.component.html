@@ -1,0 +1,12 @@
+<section class="pipeline" aria-label="Workforce risk intelligence pipeline">
+  <h2 class="pipeline__title">How risk intelligence works</h2>
+  <ol class="pipeline__track">
+    <li class="pipeline__stage" *ngFor="let stage of stages">
+      <span class="pipeline__badge">{{ stage.step }}</span>
+      <div class="pipeline__body">
+        <span class="pipeline__name">{{ stage.name }}</span>
+        <span class="pipeline__detail">{{ stage.detail }}</span>
+      </div>
+    </li>
+  </ol>
+</section>

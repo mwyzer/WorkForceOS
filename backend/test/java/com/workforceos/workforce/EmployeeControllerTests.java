@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,6 +65,35 @@ class EmployeeControllerTests {
         mockMvc.perform(delete("/api/v1/employees/{id}", employeeId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void updatesEmployee() throws Exception {
+        UUID employeeId = createEmployee("EMP-003");
+        UUID departmentId = createDepartment();
+        UUID teamId = createTeam(departmentId);
+        String request = """
+                {
+                  "firstName": "Bella",
+                  "lastName": "Nguyen",
+                  "email": "bella@example.com",
+                  "departmentId": "%s",
+                  "teamId": "%s"
+                }
+                """.formatted(departmentId, teamId);
+
+        mockMvc.perform(put("/api/v1/employees/{id}", employeeId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Bella"))
+                .andExpect(jsonPath("$.lastName").value("Nguyen"))
+                .andExpect(jsonPath("$.email").value("bella@example.com"))
+                .andExpect(jsonPath("$.active").value(true));
+
+        mockMvc.perform(get("/api/v1/employees/{id}", employeeId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Bella"));
     }
 
     private UUID createEmployee(String employeeNumber) throws Exception {

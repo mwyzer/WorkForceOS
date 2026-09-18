@@ -53,12 +53,12 @@ class ObservabilityTests {
                 .andExpect(header().string("X-Request-Id", "client-request-1"))
                 .andExpect(jsonPath("$.traceId").value(not("-")))
                 .andExpect(jsonPath("$.requestId").value("client-request-1"))
-                .andExpect(jsonPath("$.path").value(is("/api/v1/rosters/" + missingRosterId)));
+                .andExpect(jsonPath("$.path").value(is("/api/v1/rosters/" + missingRosterId + "/publish")));
     }
 
     @Test
     void honorsIncomingW3cTraceparentHeader() throws Exception {
-        String traceId = "9f7c0a1b2c3d4e5f60718293a4b5c6d7e";
+        String traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
         UUID missingRosterId = UUID.randomUUID();
         mockMvc.perform(get("/api/v1/rosters/{id}", missingRosterId)
                         .header("traceparent", "00-" + traceId + "-00f067aa0ba902b7-01"))

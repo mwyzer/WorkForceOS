@@ -1,8 +1,19 @@
 # WorkforceOS Acceptance Criteria
 
-**Status:** Draft MVP release gate
+**Status:** Draft MVP release gate | **Implementation:** P0 core, workflows, risk intelligence, and observability are implemented with automated coverage; PostgreSQL persistence for all domains is in progress
 
 Each criterion is accepted only when the behavior, authorization, persistence, audit, and failure path are verified by automated tests or approved system evidence.
+
+## Currently Verified
+
+- Auth: login returns a signed bearer token; invalid credentials return `401` without enumeration; protected routes reject missing/invalid tokens (test coverage in controller and security tests).
+- Schedule/attendance domain rules: overlapping assignments rejected, roster state transitions enforced, duplicate clock-in rejected, eligibility against published assignments enforced (`ScheduleEngine`/`AttendanceEngine` unit tests).
+- Approval engine: reusable lifecycle, self-approval and duplicate decision rejection, history recorded (`ApprovalEngineTests`).
+- Risk pipeline: five deterministic rules, impact calculation, severity banding, advisor fallback, deduplication, alerts, and summary endpoint (`risk` unit and API tests).
+- Event bus: outbox recording, handler deduplication, retry backoff, transactional PostgreSQL persistence, and Kafka relay with backoff and idempotent relay markers (`EventPublisherTests`, `EventArchitectureTests`, `KafkaRelayerTests`, `KafkaRelayIntegrationTests`, `ObservabilityTests`).
+- Notifications: domain events project into per-recipient notifications with per-channel delivery adapters, status transitions (`PENDING`/`SENT`/`DELIVERED`/`FAILED`/`READ`), attempt tracking, and retry (`NotificationDeliveryServiceTests`, `NotificationProjectionIntegrationTests`, `NotificationControllerTests`).
+- PostgreSQL persistence: operational core, risk, and outbox entities validate against Flyway migrations and round-trip through the JPA stores (`PersistenceIntegrationTests`).
+- Error contract and request correlation: `ApiError` with `traceId`/`requestId`; response headers `X-Request-Id` and `traceparent` (`ObservabilityTests`).
 
 ## Authentication and Authorization
 
@@ -43,10 +54,33 @@ Each criterion is accepted only when the behavior, authorization, persistence, a
 ## Audit, Reporting, and Operations
 
 - Important business actions create complete audit records.
-- Reports are organization-scoped and return correct data for attendance, workforce, leave, overtime, absence, and approvals.
+- Reports are organization-scoped and return correct data for attendance, workforce, leave, overtime, absence, and approvals, including per-employee and per-department breakdowns.
+- The dashboard exposes both a summary and an operations view with pending approvals, handovers, published rosters, and recent notifications.
+- API rate limiting (token bucket, configurable per-minute limit, HTTP 429 with `Retry-After`, health/actuator excluded) is enforced when enabled.
 - Health checks distinguish service readiness from dependency availability.
 - Errors use the documented structure and include a trace identifier where available.
 - Logs and metrics do not expose passwords, tokens, or unnecessary personal data.
+
+## Workforce Risk Intelligence
+
+- Analysis can be triggered on demand and runs automatically after roster publication and leave/overtime/employee-deactivation events.
+- Repeated analysis for the same risk type, entity, and window does not duplicate assessments or alerts.
+- Risk assessments persist risk type, severity, score, entity, window, impact, and evidence.
+- HIGH/MEDIUM assessments create OPEN alerts that can be resolved idempotently.
+- The advisor returns an explanation, impact summary, and recommendations offline (heuristic) and via LLM when configured and reachable.
+- The risk dashboard displays the summary, pipeline, alert list, assessments, and recommendations.
+
+## AI Assistance
+
+- The assistant answers natural-language workforce questions (headcount, approvals, attendance, overtime, leave, risk, rosters) grounded in live data, without mutating anything.
+- It works offline via deterministic intent classification and heuristics, and uses an OpenAI-compatible LLM when configured, falling back to heuristics on failure.
+- Blank questions are rejected with `400`; unknown questions return a general overview.
+
+## Predictive Analytics and Automated Scheduling
+
+- Absenteeism insights score each employee from scheduled-vs-attended shifts, lateness, and approved leave, exposing rate, trend, risk level, and human-readable drivers, and tolerate a configurable window.
+- Demand forecasting projects per-weekday staffing demand from historical assignment volume and compares it with scheduled shifts and approved leave to flag shortage days over a configurable horizon.
+- Auto-scheduling returns an advisory plan that fills understaffed shift slots with active, non-conflicting, non-leave employees and never writes assignments without review.
 
 ## Release Evidence
 

@@ -1,14 +1,12 @@
 package com.workforceos.scheduling;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.shared.ValidationUtils;
@@ -16,21 +14,23 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class NotificationService {
 
-    private final ConcurrentMap<UUID, Notification> notifications = new ConcurrentHashMap<>();
+    private final NotificationStore notificationStore;
+    private final NotificationDeliveryService deliveryService;
+
+    public NotificationService(NotificationStore notificationStore, NotificationDeliveryService deliveryService) {
+        this.notificationStore = notificationStore;
+        this.deliveryService = deliveryService;
+    }
 
     public List<Notification> findAll() {
-        return notifications.values().stream()
-                .sorted(Comparator.comparing(Notification::createdAt).reversed())
-                .toList();
+        return notificationStore.findAll();
     }
 
     public List<Notification> findByRecipientId(UUID recipientId) {
-        return notifications.values().stream()
-                .filter(n -> n.recipientId().equals(recipientId))
-                .sorted(Comparator.comparing(Notification::createdAt).reversed())
-                .toList();
+        return notificationStore.findByRecipientId(recipientId);
     }
 
+    @Transactional
     public Notification create(NotificationRequest request) {
         validateRequest(request);
 
@@ -42,20 +42,21 @@ public class NotificationService {
                 request.body().trim(),
                 request.channel(),
                 NotificationStatus.PENDING,
-                Instant.now());
+                Instant.now(),
+                0,
+                Instant.now(),
+                null);
 
-        notifications.put(notification.id(), notification);
-        return notification;
+        Notification saved = notificationStore.save(notification);
+        return deliveryService.deliver(saved);
     }
 
     public Notification findById(UUID id) {
-        Notification notification = notifications.get(id);
-        if (notification == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found");
-        }
-        return notification;
+        return notificationStore.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
     }
 
+    @Transactional
     public Notification markAsRead(UUID id) {
         Notification notification = findById(id);
         Notification read = new Notification(
@@ -66,9 +67,11 @@ public class NotificationService {
                 notification.body(),
                 notification.channel(),
                 NotificationStatus.READ,
-                notification.createdAt());
-        notifications.put(id, read);
-        return read;
+                notification.createdAt(),
+                notification.attemptCount(),
+                notification.nextAttemptAt(),
+                notification.lastError());
+        return notificationStore.save(read);
     }
 
     private void validateRequest(NotificationRequest request) {

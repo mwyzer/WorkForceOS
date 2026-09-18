@@ -1,0 +1,173 @@
+<div class="risk">
+  <header class="risk__bar">
+    <span class="risk__brand">WorkforceOS</span>
+    <nav class="risk__nav">
+      <a class="risk__link" routerLink="/">Overview</a>
+      <a class="risk__link" routerLink="/employees">Employees</a>
+      <span class="risk__link risk__link--active">Risk intelligence</span>
+    </nav>
+    <button type="button" class="risk__logout" (click)="logout()">Sign out</button>
+  </header>
+
+  <main class="risk__content">
+    <div class="risk__heading">
+      <h1 class="risk__title">Workforce risk intelligence</h1>
+      <div class="risk__actions">
+        <span class="risk__mode" *ngIf="summary">Advisor: {{ summary.advisorMode }}</span>
+        <button
+          type="button"
+          class="risk__run"
+          [disabled]="analyzing"
+          (click)="runAnalysis()"
+        >
+          {{ analyzing ? 'Analyzing…' : 'Run analysis now' }}
+        </button>
+      </div>
+    </div>
+
+    <p class="risk__status risk__status--error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <main class="risk__loading" *ngIf="loading && !summary">
+      <p class="risk__status">Loading risk data…</p>
+    </main>
+
+    <ng-container *ngIf="!loading || summary">
+      <app-risk-pipeline></app-risk-pipeline>
+
+      <section class="stat-grid" *ngIf="summary as summary">
+        <div
+          class="stat-card stat-card--gauge"
+          [class.stat-card--danger]="riskTimer(summary.riskIndex) === 'danger'"
+          [class.stat-card--amber]="riskTimer(summary.riskIndex) === 'amber'"
+        >
+          <svg class="gauge" viewBox="0 0 120 72" aria-hidden="true">
+            <path d="M 10 66 A 50 50 0 0 1 110 66" class="gauge__track"></path>
+            <path
+              d="M 10 66 A 50 50 0 0 1 110 66"
+              class="gauge__fill"
+              stroke-dasharray="157.08"
+              [attr.stroke-dashoffset]="gaugeOffset(summary.riskIndex)"
+            ></path>
+          </svg>
+          <span class="stat-card__value">{{ summary.riskIndex }}</span>
+          <span class="stat-card__label">Risk index / 100</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__value">{{ summary.coveragePercentage }}%</span>
+          <span class="stat-card__label">Slot coverage</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__value">{{ summary.openAlerts }}</span>
+          <span class="stat-card__label">Open alerts</span>
+        </div>
+        <div
+          class="stat-card stat-card--danger stat-card--clickable"
+          [class.stat-card--active]="severityFilter === 'HIGH'"
+          (click)="toggleSeverity('HIGH')"
+          title="Filter by high severity"
+        >
+          <span class="stat-card__value">{{ summary.highCount }}</span>
+          <span class="stat-card__label">High severity</span>
+        </div>
+        <div
+          class="stat-card stat-card--amber stat-card--clickable"
+          [class.stat-card--active]="severityFilter === 'MEDIUM'"
+          (click)="toggleSeverity('MEDIUM')"
+          title="Filter by medium severity"
+        >
+          <span class="stat-card__value">{{ summary.mediumCount }}</span>
+          <span class="stat-card__label">Medium severity</span>
+        </div>
+        <div
+          class="stat-card stat-card--clickable"
+          [class.stat-card--active]="severityFilter === 'LOW'"
+          (click)="toggleSeverity('LOW')"
+          title="Filter by low severity"
+        >
+          <span class="stat-card__value">{{ summary.lowCount }}</span>
+          <span class="stat-card__label">Low severity</span>
+        </div>
+        <div
+          class="stat-card stat-card--clickable"
+          (click)="resetFilters()"
+          title="Clear all filters"
+        >
+          <span class="stat-card__value">{{ summary.totalAssessments }}</span>
+          <span class="stat-card__label">All assessments</span>
+        </div>
+      </section>
+
+      <app-risk-charts
+        *ngIf="summary || assessments.length || trend.length"
+        [summary]="summary"
+        [assessments]="assessments"
+        [departments]="departments"
+        [trend]="trend"
+        [activeType]="typeFilter"
+        [activeSeverity]="severityFilter"
+        [activeDepartment]="departmentFilter"
+        (selectType)="toggleType($event)"
+        (selectSeverity)="toggleSeverity($event)"
+        (selectDepartment)="toggleDepartment($event)"
+      ></app-risk-charts>
+
+      <section class="panel" *ngIf="summary as summary">
+        <h2 class="panel__title">Latest analysis</h2>
+        <p class="panel__analysis">{{ summary.latestAnalysis }}</p>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">Alerts</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Severity</th>
+              <th>Summary</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let alert of alerts">
+              <td><span [class]="severityClass(alert.severity)">{{ alert.severity }}</span></td>
+              <td>{{ alert.summary }}</td>
+              <td>
+                <span [class]="severityClass(alert.status === 'OPEN' ? 'high' : 'low')">
+                  {{ alert.status }}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="risk__resolve"
+                  *ngIf="alert.status === 'OPEN'"
+                  (click)="resolveAlert(alert)"
+                >
+                  Resolve
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="alerts.length === 0">
+              <td colspan="4" class="table__empty">No alerts. The workforce looks covered.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel" *ngIf="summary || assessments.length">
+        <app-risk-assessments
+          [assessments]="assessments"
+          [departments]="departments"
+          [risksByType]="summary?.risksByType ?? {}"
+          [severityFilter]="severityFilter"
+          [typeFilter]="typeFilter"
+          [departmentFilter]="departmentFilter"
+          (selectSeverity)="toggleSeverity($event)"
+          (selectType)="toggleType($event)"
+          (selectDepartment)="toggleDepartment($event)"
+          (resetFilters)="resetFilters()"
+        ></app-risk-assessments>
+      </section>
+    </ng-container>
+  </main>
+</div>

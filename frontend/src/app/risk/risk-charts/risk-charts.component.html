@@ -1,0 +1,82 @@
+<section class="charts">
+  <div class="chart" *ngIf="severityBars().length">
+    <h3 class="chart__title">Severity mix</h3>
+    <div class="stack">
+      <button
+        type="button"
+        class="stack__segment stack__segment--clickable {{ bar.cls }}"
+        *ngFor="let bar of severityBars()"
+        [class.stack__segment--active]="activeSeverity === bar.key"
+        [style.width.%]="bar.pct"
+        [title]="bar.label + ': ' + bar.count"
+        (click)="selectSeverity.emit(bar.key)"
+      >
+        {{ bar.count }}
+      </button>
+    </div>
+    <div class="chart__legend">
+      <span class="legend__item" *ngFor="let bar of severityBars()">
+        <span class="legend__dot {{ bar.cls }}"></span>{{ bar.label }} · {{ bar.count }}
+      </span>
+    </div>
+  </div>
+
+  <div class="chart" *ngIf="typeBars().length">
+    <h3 class="chart__title">Risk by type</h3>
+    <button
+      type="button"
+      class="hbar"
+      *ngFor="let row of typeBars()"
+      [class.hbar--active]="activeType === row.key"
+      [title]="row.label + ': ' + row.count"
+      (click)="selectType.emit(row.key)"
+    >
+      <span class="hbar__label">{{ row.label }}</span>
+      <span class="hbar__track">
+        <span class="hbar__fill hbar__fill--amber" [style.width.%]="row.pct"></span>
+      </span>
+      <span class="hbar__count">{{ row.count }}</span>
+    </button>
+  </div>
+
+  <div class="chart" *ngIf="departmentBars().length">
+    <h3 class="chart__title">Risk by department</h3>
+    <button
+      type="button"
+      class="hbar"
+      *ngFor="let row of departmentBars()"
+      [class.hbar--active]="activeDepartment === row.departmentId"
+      [title]="row.name + ': ' + row.count"
+      (click)="selectDepartment.emit(row.departmentId)"
+    >
+      <span class="hbar__label">{{ row.name }}</span>
+      <span class="hbar__track">
+        <span class="hbar__fill hbar__fill--ink" [style.width.%]="row.pct"></span>
+      </span>
+      <span class="hbar__count">{{ row.count }}</span>
+    </button>
+  </div>
+
+  <div class="chart chart--trend" *ngIf="trendBars().length">
+    <h3 class="chart__title">New risk detections per day</h3>
+    <div class="vbar">
+      <div
+        class="vbar__col"
+        *ngFor="let point of trendBars()"
+        [title]="point.date + ': ' + point.count + ' new'"
+      >
+        <span
+          class="vbar__bar"
+          [class.vbar__bar--high]="point.high > 0"
+          [class.vbar__bar--medium]="point.high === 0 && point.medium > 0"
+          [style.height.%]="point.pct"
+        ></span>
+        <span class="vbar__axis">{{ shortDate(point.date) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="charts__empty" *ngIf="!assessments.length && !typeBars().length && !trendBars().length">
+    Run an analysis to visualize workforce risk.
+  </p>
+</section>

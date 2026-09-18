@@ -12,15 +12,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.event.EventPublisher;
+import com.workforceos.event.InMemoryOutboxStore;
 import com.workforceos.event.OutboxStore;
 import com.workforceos.event.OutboxStatus;
 import com.workforceos.shared.CurrentUser;
 
 class ScheduleEngineTests {
 
-    private final OutboxStore outbox = new OutboxStore();
+    private final OutboxStore outbox = new InMemoryOutboxStore();
     private final EventPublisher publisher = new EventPublisher(outbox, List.of());
-    private final ScheduleEngine engine = new ScheduleEngine(publisher, new CurrentUser());
+    private final ScheduleEngine engine = new ScheduleEngine(new InMemoryShiftTemplateStore(),
+            new InMemoryRosterStore(), new InMemoryRosterAssignmentStore(), publisher, new CurrentUser());
 
     @Test
     void createsShiftTemplatesIncludingOvernightShifts() {

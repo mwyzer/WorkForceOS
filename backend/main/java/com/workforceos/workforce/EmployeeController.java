@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +38,11 @@ public class EmployeeController {
     public ResponseEntity<Employee> create(@RequestBody CreateEmployeeRequest request) {
         Employee employee = employeeService.create(request);
         return ResponseEntity.created(URI.create("/api/v1/employees/" + employee.id())).body(employee);
+    }
+
+    @PutMapping("/{id}")
+    public Employee update(@PathVariable UUID id, @RequestBody UpdateEmployeeRequest request) {
+        return employeeService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

@@ -2,7 +2,7 @@
 
 WorkforceOS is an enterprise REST API platform for organizations with shift-based employees. It centralizes workforce scheduling, attendance, leave, overtime, shift handover, approvals, notifications, auditing, and reporting in one auditable backend.
 
-> **Status:** Active development. The backend implements most of the P0 MVP scope from the PRD against in-memory storage; PostgreSQL persistence, the Angular frontend, and P1 capabilities are still in progress.
+> **Status:** Active development. The backend implements most of the P0 MVP scope from the PRD plus the workforce risk intelligence pipeline (risk detection, LLM/heuristic analysis, alerts, and recommendations) against in-memory operational data with persisted risk assessments; PostgreSQL persistence for operational domain data, Redis caching, Kafka-based events, and the remaining P1/P2 scope are still in progress.
 
 ## Implementation Status
 
@@ -14,12 +14,13 @@ The backend (`backend/`) is a Spring Boot 3 / Java 21 modular monolith with the 
 - Attendance: clock in/out, attendance corrections
 - Requests and approvals: leave requests, overtime requests, shift swap requests
 - Shift handover: create, submit, acknowledge
+- Workforce risk intelligence: risk engine, LLM/heuristic analysis, alerts, and recommendations (see below)
 - Notifications, audit logging, and operational reports
 - `GET /api/v1/health` service health endpoint
 
-Domain data currently lives in in-memory repositories. PostgreSQL persistence, Redis caching, Kafka-based events, and the remaining P1/P2 scope are tracked in the [roadmap](docs/ROADMAP.md).
+Domain operational data currently lives in in-memory repositories, while risk assessments, recommendations, and alerts are persisted (PostgreSQL via Flyway). PostgreSQL persistence for operational domain data, Redis caching, Kafka-based events, and the remaining P1/P2 scope are tracked in the [roadmap](docs/ROADMAP.md).
 
-The frontend (`frontend/`) is an Angular 16 project currently at initial scaffold state; application features have not been built yet.
+The frontend (`frontend/`) is an Angular 16 project with the login, workforce overview, and risk intelligence dashboards built.
 
 ## Run Locally
 
@@ -97,6 +98,7 @@ WorkforceOS provides a centralized source of operational workforce data and busi
 - **Audit**: User activity, data changes, approvals, and operational events
 - **Reporting**: Attendance, workforce, overtime, leave, absence, and approval reports
 - **Notifications**: Events such as roster publication and request decisions
+- **Workforce risk intelligence**: Early detection of coverage shortfalls, staffing liquidity, attendance trends, overtime dependency, and single-point-of-failure risks, with LLM or heuristic analysis, business impact estimates, recommendations, and dashboard alerts
 
 ## User Roles
 
@@ -149,6 +151,42 @@ Current shift creates handover -> Submit -> Next shift reviews -> Acknowledge
 - Critical operations should be idempotent to prevent duplicate records during retries.
 - Approval actions and important operational changes must remain auditable.
 
+## Workforce Risk Intelligence
+
+The workforce risk pipeline turns operational data into structured risks, explains them, and recommends mitigations. Analysis runs on demand and automatically when a roster is published or a leave, overtime, or employee deactivation event is raised, then is persisted with deduplication so repeated runs do not produce duplicate assessments or alerts.
+
+```mermaid
+flowchart LR
+    Data["Workforce Data<br/>employees · rosters · attendance<br/>leave · overtime · swaps"] --> Engine["Risk Engine<br/>5 scoring rules"]
+    Engine --> Structured["Structured Risk<br/>type · severity · score · window"]
+    Structured --> LLM["LLM Analysis<br/>explanation · business impact"]
+    LLM --> Reco["Recommendations<br/>catalog + AI actions"]
+    Reco --> Alert["Dashboard Alert<br/>early warning · resolve + act"]
+```
+
+Risk types and severity bands:
+
+```mermaid
+flowchart TD
+    C[COVERAGE_SHORTFALL<br/>leave or inactive employee<br/>leaves a shift uncovered]
+    L[STAFFING_LIQUIDITY<br/>scheduled demand exceeds<br/>active staff over the horizon]
+    A[ATTENDANCE_TREND<br/>frequent late or<br/>early-departure pattern]
+    O[OVERTIME_DEPENDENCY<br/>heavy approved overtime<br/>on the same employee]
+    S[SINGLE_POINT_OF_FAILURE<br/>overnight shift with<br/>no backup assignee]
+    C --> Bands{Score bands}
+    L --> Bands
+    A --> Bands
+    O --> Bands
+    S --> Bands
+    Bands --> H["HIGH · ≥ 80"]
+    Bands --> M["MEDIUM · 50–79"]
+    Bands --> W["LOW · < 50"]
+```
+
+Example: an employee on approved leave covering a published day shift within the next 3 days yields a `COVERAGE_SHORTFALL` with `HIGH` severity; the agent recommends a shift swap or overtime with direct action links, and an `OPEN` alert appears on the risk dashboard until resolved.
+
+Configuration lives under `workforce.risk` in `application.yml` (horizon, attendance thresholds, overtime thresholds, labor rate, recompute cron, and OpenAI-compatible LLM settings for `ai-provider=openai`). When no LLM is configured or the call fails, the heuristic advisor produces the explanation and impact text so analysis always works offline.
+
 ## API Conventions
 
 The planned API base path is:
@@ -191,6 +229,12 @@ POST /api/v1/handovers/{id}/acknowledge
 GET  /api/v1/audit-logs
 POST /api/v1/notifications
 GET  /api/v1/reports/*
+POST /api/v1/risk/analyze
+GET  /api/v1/risk/summary
+GET  /api/v1/risk/assessments
+GET  /api/v1/risk/assessments/{id}/recommendations
+GET  /api/v1/risk/alerts
+POST /api/v1/risk/alerts/{id}/resolve
 ```
 
 Authenticate first:
@@ -231,7 +275,8 @@ flowchart LR
                 Attendance[Attendance]
                 Requests[Requests and Approval]
                 Handover[Handover]
-                Reporting[Reporting]
+                Reports[Reporting]
+                Risk[Risk Intelligence]
                 Audit[Audit]
                 Outbox[Transactional Outbox]
         end
@@ -243,6 +288,13 @@ flowchart LR
         API --> Requests
         API --> Handover
         API --> Reporting
+        Scheduling --> Risk
+        Workforce --> Risk
+        Attendance --> Risk
+        Requests --> Risk
+        API --> Risk
+        Reporting --> Risk
+        Risk --> Audit
         Auth --> Workforce
         Scheduling --> Attendance
         Requests --> Audit
@@ -343,7 +395,9 @@ Redis caching, Kafka events, notifications, attendance correction, shift swaps, 
 
 ### P2: Future
 
-AI workforce assistance, predictive analytics, automated scheduling, external HR integrations, and payroll integrations.
+AI workforce assistant, automated scheduling, external HR integrations, and payroll integrations.
+
+> Proven in practice: advanced predictive analytics are partially delivered by the workforce risk intelligence pipeline (heuristic risk rules + optional LLM analysis), implemented ahead of the original roadmap order.
 
 ## Out of Scope for the Initial Release
 
@@ -365,6 +419,7 @@ Targets are subject to revision after load testing and implementation decisions.
 - [Product Requirements Document](docs/PRD.md)
 - [Business Requirements Document](docs/BRD.md)
 - [Software Requirements Specification](docs/SRS.md)
+- [Functional Specification](docs/FSD.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Database Design](docs/DATABASE-DESIGN.md)
 - [API Specification](docs/API-SPECIFICATION.md)

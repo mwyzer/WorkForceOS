@@ -1,0 +1,175 @@
+<div class="employees">
+  <header class="employees__bar">
+    <span class="employees__brand">WorkforceOS</span>
+    <nav class="employees__nav">
+      <a class="employees__link" routerLink="/">Overview</a>
+      <span class="employees__link employees__link--active">Employees</span>
+      <a class="employees__link" routerLink="/risk">Risk intelligence</a>
+    </nav>
+    <button type="button" class="employees__logout" (click)="logout()">Sign out</button>
+  </header>
+
+  <main class="employees__content">
+    <div class="employees__heading">
+      <h1 class="employees__title">Employees</h1>
+      <button type="button" class="employees__add" (click)="openCreate()">Add employee</button>
+    </div>
+
+    <p class="employees__status employees__status--error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <main class="employees__loading" *ngIf="loading">
+      <p class="employees__status">Loading employees…</p>
+    </main>
+
+    <ng-container *ngIf="!loading">
+      <section class="panel">
+        <div class="panel__bar">
+          <h2 class="panel__title">All staff</h2>
+          <input
+            class="panel__search"
+            type="search"
+            placeholder="Search name, number, email, team…"
+            [(ngModel)]="search"
+          />
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Number</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Team</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let employee of filteredEmployees">
+              <td class="table__mono">{{ employee.employeeNumber }}</td>
+              <td>
+                <span class="table__name">{{ employee.firstName }} {{ employee.lastName }}</span>
+              </td>
+              <td>{{ employee.email }}</td>
+              <td>{{ employee.departmentName }}</td>
+              <td>{{ employee.teamName }}</td>
+              <td>
+                <span
+                  class="badge"
+                  [class.badge--active]="employee.active"
+                  [class.badge--inactive]="!employee.active"
+                >
+                  {{ employee.active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <div class="table__actions">
+                  <button type="button" class="table__button" (click)="openEdit(employee)">
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="table__button table__button--danger"
+                    *ngIf="employee.active"
+                    (click)="deactivate(employee)"
+                  >
+                    Deactivate
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredEmployees.length === 0">
+              <td colspan="7" class="table__empty">
+                {{ employees.length === 0 ? 'No employees yet. Add your first one.' : 'No matches for that search.' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </ng-container>
+  </main>
+
+  <div class="modal-backdrop" *ngIf="modalOpen" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 class="modal__title">
+        {{ editing ? 'Edit employee' : 'Add employee' }}
+      </h2>
+
+      <p class="employees__status employees__status--error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+      <form class="modal__form" [formGroup]="form" (ngSubmit)="save()">
+        <label class="field">
+          <span class="field__label">Employee number</span>
+          <input
+            class="field__input"
+            type="text"
+            formControlName="employeeNumber"
+            placeholder="EMP-001"
+            [disabled]="!!editing"
+          />
+          <span class="field__error" *ngIf="form.get('employeeNumber')?.invalid && form.get('employeeNumber')?.touched">
+            Required
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">First name</span>
+          <input class="field__input" type="text" formControlName="firstName" />
+          <span class="field__error" *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">
+            Required
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Last name</span>
+          <input class="field__input" type="text" formControlName="lastName" />
+          <span class="field__error" *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">
+            Required
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Email</span>
+          <input class="field__input" type="email" formControlName="email" />
+          <span class="field__error" *ngIf="form.get('email')?.invalid && form.get('email')?.touched">
+            {{ form.get('email')?.errors?.['email'] ? 'Enter a valid email' : 'Required' }}
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Department</span>
+          <select class="field__input" formControlName="departmentId" (change)="onDepartmentChange()">
+            <option value="" disabled>Select a department</option>
+            <option *ngFor="let department of departments" [ngValue]="department.id">
+              {{ department.name }}
+            </option>
+          </select>
+          <span class="field__error" *ngIf="form.get('departmentId')?.invalid && form.get('departmentId')?.touched">
+            Required
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Team</span>
+          <select class="field__input" formControlName="teamId">
+            <option value="" disabled>Select a team</option>
+            <option *ngFor="let team of teamsForDepartment" [ngValue]="team.id">
+              {{ team.name }}
+            </option>
+          </select>
+          <span class="field__error" *ngIf="form.get('teamId')?.invalid && form.get('teamId')?.touched">
+            Required
+          </span>
+        </label>
+
+        <div class="modal__actions">
+          <button type="button" class="modal__button" (click)="closeModal()">Cancel</button>
+          <button type="submit" class="modal__button modal__button--primary" [disabled]="saving">
+            {{ saving ? 'Saving…' : (editing ? 'Save changes' : 'Create employee') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

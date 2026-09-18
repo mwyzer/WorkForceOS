@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
@@ -19,6 +20,18 @@ public class ApiExceptionHandler {
         ApiError body = build(ex.getStatusCode().value(), ex.getStatusCode().toString(), ex.getReason(),
                 requestPath(request));
         return ResponseEntity.status(ex.getStatusCode()).body(body);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+            WebRequest request) {
+        String supported = String.join(", ", ex.getSupportedHttpMethods().stream()
+                .map(Object::toString).toList());
+        String message = supported.isBlank() ? "Method not allowed"
+                : "Method not allowed. Supported: " + supported;
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(build(HttpStatus.METHOD_NOT_ALLOWED.value(),
+                        HttpStatus.METHOD_NOT_ALLOWED.toString(), message, requestPath(request)));
     }
 
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})

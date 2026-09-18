@@ -39,3 +39,57 @@ workforce:
     admin-password: ${WORKFORCE_AUTH_ADMIN_PASSWORD:admin}
   observability:
     outbox-failed-threshold: ${WORKFORCE_OUTBOX_FAILED_THRESHOLD:100}
+  events:
+    outbox-poll-ms: ${WORKFORCE_EVENTS_OUTBOX_POLL_MS:5000}
+    kafka:
+      enabled: ${WORKFORCE_EVENTS_KAFKA_ENABLED:false}
+      bootstrap-servers: ${WORKFORCE_EVENTS_KAFKA_BOOTSTRAP:localhost:9092}
+      topic: ${WORKFORCE_EVENTS_KAFKA_TOPIC:workforce.domain.events}
+      poll-ms: ${WORKFORCE_EVENTS_KAFKA_POLL_MS:2000}
+      send-timeout-ms: ${WORKFORCE_EVENTS_KAFKA_SEND_TIMEOUT_MS:5000}
+  notifications:
+    delivery-poll-ms: ${WORKFORCE_NOTIFICATIONS_DELIVERY_POLL_MS:5000}
+  api-rate-limit:
+    enabled: ${WORKFORCE_API_RATE_LIMIT_ENABLED:false}
+    requests-per-minute: ${WORKFORCE_API_RATE_LIMIT_PER_MINUTE:120}
+  assistant:
+    ai-provider: ${WORKFORCE_ASSISTANT_AI_PROVIDER:${WORKFORCE_RISK_AI_PROVIDER:none}}
+    ai-base-url: ${WORKFORCE_ASSISTANT_AI_BASE_URL:${WORKFORCE_RISK_AI_BASE_URL:}}
+    ai-model: ${WORKFORCE_ASSISTANT_AI_MODEL:${WORKFORCE_RISK_AI_MODEL:}}
+    ai-api-key: ${WORKFORCE_ASSISTANT_AI_API_KEY:${WORKFORCE_RISK_AI_API_KEY:}}
+    ai-timeout-ms: ${WORKFORCE_ASSISTANT_AI_TIMEOUT_MS:${WORKFORCE_RISK_AI_TIMEOUT_MS:15000}}
+  analytics:
+    absenteeism-window-days: ${WORKFORCE_ANALYTICS_ABSENTEEISM_WINDOW_DAYS:30}
+    forecast-horizon-days: ${WORKFORCE_ANALYTICS_FORECAST_HORIZON_DAYS:7}
+    forecast-lookback-weeks: ${WORKFORCE_ANALYTICS_FORECAST_LOOKBACK_WEEKS:4}
+  auto-schedule:
+    target-headcount: ${WORKFORCE_AUTO_SCHEDULE_TARGET_HEADCOUNT:1}
+  integrations:
+    payroll-csv:
+      enabled: ${WORKFORCE_INTEGRATIONS_PAYROLL_CSV_ENABLED:false}
+      directory: ${WORKFORCE_INTEGRATIONS_PAYROLL_CSV_DIRECTORY:}
+    webhook:
+      enabled: ${WORKFORCE_INTEGRATIONS_WEBHOOK_ENABLED:false}
+      url: ${WORKFORCE_INTEGRATIONS_WEBHOOK_URL:}
+      api-key: ${WORKFORCE_INTEGRATIONS_WEBHOOK_API_KEY:}
+      timeout-ms: ${WORKFORCE_INTEGRATIONS_WEBHOOK_TIMEOUT_MS:5000}
+    biometric:
+      enabled: ${WORKFORCE_INTEGRATIONS_BIOMETRIC_ENABLED:false}
+    geofence:
+      latitude: ${WORKFORCE_INTEGRATIONS_GEOFENCE_LATITUDE:}
+      longitude: ${WORKFORCE_INTEGRATIONS_GEOFENCE_LONGITUDE:}
+      radius-meters: ${WORKFORCE_INTEGRATIONS_GEOFENCE_RADIUS_METERS:500}
+  risk:
+    liquidity-days: ${WORKFORCE_RISK_LIQUIDITY_DAYS:14}
+    attendance-min-sessions: ${WORKFORCE_RISK_ATTENDANCE_MIN_SESSIONS:4}
+    attendance-issue-threshold: ${WORKFORCE_RISK_ATTENDANCE_ISSUE_THRESHOLD:0.25}
+    overtime-window-days: ${WORKFORCE_RISK_OVERTIME_WINDOW_DAYS:30}
+    overtime-high-hours: ${WORKFORCE_RISK_OVERTIME_HIGH_HOURS:20}
+    overtime-medium-hours: ${WORKFORCE_RISK_OVERTIME_MEDIUM_HOURS:10}
+    labor-rate-per-hour: ${WORKFORCE_RISK_LABOR_RATE:50}
+    recompute-cron: ${WORKFORCE_RISK_RECOMPUTE_CRON:0 0 */6 * * *}
+    ai-provider: ${WORKFORCE_RISK_AI_PROVIDER:none}
+    ai-base-url: ${WORKFORCE_RISK_AI_BASE_URL:}
+    ai-model: ${WORKFORCE_RISK_AI_MODEL:}
+    ai-api-key: ${WORKFORCE_RISK_AI_API_KEY:}
+    ai-timeout-ms: ${WORKFORCE_RISK_AI_TIMEOUT_MS:15000}

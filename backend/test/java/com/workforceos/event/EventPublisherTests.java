@@ -13,7 +13,7 @@ class EventPublisherTests {
 
     @Test
     void publishesAndDeliversEventsToHandlers() {
-        OutboxStore outbox = new OutboxStore();
+        OutboxStore outbox = new InMemoryOutboxStore();
         AtomicInteger calls = new AtomicInteger();
         EventPublisher publisher = new EventPublisher(outbox, List.of(new EventHandler() {
             @Override
@@ -35,7 +35,7 @@ class EventPublisherTests {
 
     @Test
     void failedHandlersMoveEntryToFailedAndRetryWithoutReRunningSucceededConsumers() {
-        OutboxStore outbox = new OutboxStore();
+        OutboxStore outbox = new InMemoryOutboxStore();
         AtomicInteger failingCalls = new AtomicInteger();
         AtomicInteger succeedingCalls = new AtomicInteger();
 

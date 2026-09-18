@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -34,11 +35,11 @@ class OvertimeRequestControllerTests {
         String request = """
                 {
                   "employeeId": "%s",
-                  "date": "2026-09-10",
+                  "date": "%s",
                   "hours": 2.5,
                   "reason": "Coverage for peak period"
                 }
-                """.formatted(employeeId);
+                """.formatted(employeeId, LocalDate.now().plusDays(5));
 
         String location = mockMvc.perform(post("/api/v1/overtime-requests")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -63,11 +64,11 @@ class OvertimeRequestControllerTests {
         String request = """
                 {
                   "employeeId": "%s",
-                  "date": "2026-09-10",
+                  "date": "%s",
                   "hours": 0,
                   "reason": "Invalid hours"
                 }
-                """.formatted(UUID.randomUUID());
+                """.formatted(UUID.randomUUID(), LocalDate.now().plusDays(5));
 
         mockMvc.perform(post("/api/v1/overtime-requests")
                         .contentType(MediaType.APPLICATION_JSON)

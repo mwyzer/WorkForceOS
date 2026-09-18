@@ -1,6 +1,6 @@
 # WorkforceOS Software Requirements Specification
 
-**Version:** 1.0 | **Status:** Draft | **Date:** August 2026
+**Version:** 1.0 | **Status:** Draft | **Date:** August 2026 | **Implementation tracking:** see change log across this doc set
 
 ## 1. Purpose
 
@@ -8,9 +8,9 @@ This SRS translates the business and product requirements into a testable softwa
 
 ## 2. Scope
 
-The MVP covers authentication, RBAC, workforce and organizational data, shifts, rosters, attendance, leave, overtime, approvals, shift handover, audit logging, and operational queries. Notifications, caching, Kafka events, shift swaps, attendance corrections, advanced reporting, and rate limiting are P1 unless explicitly prioritized.
+The MVP covers authentication, RBAC, workforce and organizational data, shifts, rosters, attendance, leave, overtime, approvals, shift handover, audit logging, operational queries, and workforce risk intelligence (risk engine, LLM/heuristic analysis, persisted assessments and alerts, dashboard UI). Caching (Redis read-through), notifications, the transactional PostgreSQL outbox/event bus with optional Kafka relay, shift swaps, attendance corrections, advanced reports and dashboards, API rate limiting, an AI workforce assistant (offline heuristic with optional LLM), predictive absenteeism analytics, demand forecasting, and advisory auto-scheduling are implemented in the current build; external HR/payroll/mobile/biometric integrations remain P2 and require business approval.
 
-Payroll, recruitment, performance management, full HRIS, hardware integrations, mobile applications, and AI prediction are outside the initial release.
+Payroll, recruitment, performance management, full HRIS, hardware integrations, mobile applications, and deeper AI prediction are outside the initial release.
 
 ## 3. Actors
 
@@ -60,6 +60,17 @@ Payroll, recruitment, performance management, full HRIS, hardware integrations, 
 - Important user actions, data changes, approvals, and domain events shall be audit logged.
 - Authorized users shall query attendance, workforce, overtime, leave, absence, and approval reports.
 
+### Workforce risk intelligence
+
+- The system shall analyze workforce data and detect coverage shortfalls, staffing liquidity, attendance trends, overtime dependency, and single-point-of-failure risks.
+- Risk analysis shall run on demand via `POST /api/v1/risk/analyze` and automatically on roster publication, leave approval, overtime approval, and employee deactivation events.
+- The system shall support a periodic recompute (configurable cron) and reuse LLM or heuristic analysis for scheduled and event-driven runs.
+- Risk assessments shall be persisted, deduplicated by risk type, entity, and analysis window, and queryable via `GET /api/v1/risk/assessments`.
+- The system shall return an explanation, severity score, and structured recommendations for each risk assessment, with catalog-based fallback when no LLM is configured or the provider call fails.
+- Severity shall be banded as `HIGH` (risk index ≥ 80), `MEDIUM` (50–79), and `LOW` (< 50).
+- The system shall publish alerts for assessed risks and expose an `OPEN` / `RESOLVED` lifecycle via `GET /api/v1/risk/alerts` and `POST /api/v1/risk/alerts/{id}/resolve`.
+- The frontend risk dashboard shall display the latest risk summary, pipeline overview, active alerts, and persisted assessments with recommendations.
+
 ## 5. Quality Requirements
 
 - API targets: p95 reads below 500 ms and writes below 1 second, subject to load testing.
@@ -74,6 +85,7 @@ Payroll, recruitment, performance management, full HRIS, hardware integrations, 
 - Request: `PENDING -> APPROVED | REJECTED`; pending requests may be cancelled by policy.
 - Handover: `DRAFT -> SUBMITTED -> ACKNOWLEDGED -> CLOSED`.
 - Attendance: event stream of `CLOCK_IN`, `BREAK_START`, `BREAK_END`, and `CLOCK_OUT`.
+- Risk alert: `OPEN -> RESOLVED`; risk assessment is append-only (new versions for updated windows).
 
 ## 7. Traceability
 

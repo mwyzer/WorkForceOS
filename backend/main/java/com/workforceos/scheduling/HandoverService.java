@@ -2,11 +2,10 @@ package com.workforceos.scheduling;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.event.DomainEvents;
@@ -18,19 +17,21 @@ import com.workforceos.shared.CurrentUser;
 @Service
 public class HandoverService {
 
-    private final ConcurrentMap<UUID, Handover> handovers = new ConcurrentHashMap<>();
+    private final HandoverStore handoverStore;
     private final EventPublisher eventPublisher;
     private final CurrentUser currentUser;
 
-    public HandoverService(EventPublisher eventPublisher, CurrentUser currentUser) {
+    public HandoverService(HandoverStore handoverStore, EventPublisher eventPublisher, CurrentUser currentUser) {
+        this.handoverStore = handoverStore;
         this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
     }
 
     public List<Handover> findAll() {
-        return handovers.values().stream().toList();
+        return handoverStore.findAll();
     }
 
+    @Transactional
     public Handover create(HandoverRequest request) {
         validateRequest(request);
 
@@ -40,10 +41,10 @@ public class HandoverService {
                 request.items(),
                 HandoverStatus.DRAFT);
 
-        handovers.put(handover.id(), handover);
-        return handover;
+        return handoverStore.save(handover);
     }
 
+    @Transactional
     public Handover submit(UUID id) {
         Handover handover = findById(id);
         if (handover.status() != HandoverStatus.DRAFT) {
@@ -54,7 +55,7 @@ public class HandoverService {
                 handover.employeeId(),
                 handover.items(),
                 HandoverStatus.SUBMITTED);
-        handovers.put(id, submitted);
+        handoverStore.save(submitted);
 
         eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_SUBMITTED, null, "Handover", submitted.id(),
                 currentUser.username(),
@@ -64,6 +65,7 @@ public class HandoverService {
         return submitted;
     }
 
+    @Transactional
     public Handover acknowledge(UUID id) {
         Handover handover = findById(id);
         if (handover.status() != HandoverStatus.SUBMITTED) {
@@ -74,7 +76,7 @@ public class HandoverService {
                 handover.employeeId(),
                 handover.items(),
                 HandoverStatus.ACKNOWLEDGED);
-        handovers.put(id, acknowledged);
+        handoverStore.save(acknowledged);
 
         eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_ACKNOWLEDGED, null, "Handover", acknowledged.id(),
                 currentUser.username(),
@@ -84,11 +86,8 @@ public class HandoverService {
     }
 
     public Handover findById(UUID id) {
-        Handover handover = handovers.get(id);
-        if (handover == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Handover not found");
-        }
-        return handover;
+        return handoverStore.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Handover not found"));
     }
 
     private void validateRequest(HandoverRequest request) {

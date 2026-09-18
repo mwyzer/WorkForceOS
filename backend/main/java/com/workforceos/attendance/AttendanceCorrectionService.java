@@ -2,11 +2,10 @@ package com.workforceos.attendance;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.approval.ApprovalDecision;
@@ -17,19 +16,22 @@ import com.workforceos.shared.ValidationUtils;
 @Service
 public class AttendanceCorrectionService {
 
-    private final ConcurrentMap<UUID, AttendanceCorrection> attendanceCorrections = new ConcurrentHashMap<>();
+    private final AttendanceCorrectionStore correctionStore;
     private final ApprovalEngine approvalEngine;
     private final CurrentUser currentUser;
 
-    public AttendanceCorrectionService(ApprovalEngine approvalEngine, CurrentUser currentUser) {
+    public AttendanceCorrectionService(AttendanceCorrectionStore correctionStore, ApprovalEngine approvalEngine,
+            CurrentUser currentUser) {
+        this.correctionStore = correctionStore;
         this.approvalEngine = approvalEngine;
         this.currentUser = currentUser;
     }
 
     public List<AttendanceCorrection> findAll() {
-        return attendanceCorrections.values().stream().toList();
+        return correctionStore.findAll();
     }
 
+    @Transactional
     public AttendanceCorrection create(AttendanceCorrectionRequest request) {
         validateRequest(request);
 
@@ -41,12 +43,13 @@ public class AttendanceCorrectionService {
                 request.details().trim(),
                 AttendanceCorrectionStatus.PENDING);
 
-        attendanceCorrections.put(attendanceCorrection.id(), attendanceCorrection);
+        correctionStore.save(attendanceCorrection);
         approvalEngine.register(attendanceCorrection.id(), "ATTENDANCE_CORRECTION", attendanceCorrection.employeeId(),
                 currentUser.username());
         return attendanceCorrection;
     }
 
+    @Transactional
     public AttendanceCorrection approve(UUID id) {
         AttendanceCorrection attendanceCorrection = findById(id);
         if (attendanceCorrection.status() != AttendanceCorrectionStatus.PENDING) {
@@ -60,10 +63,10 @@ public class AttendanceCorrectionService {
                 attendanceCorrection.type(),
                 attendanceCorrection.details(),
                 AttendanceCorrectionStatus.APPROVED);
-        attendanceCorrections.put(id, approved);
-        return approved;
+        return correctionStore.save(approved);
     }
 
+    @Transactional
     public AttendanceCorrection reject(UUID id) {
         AttendanceCorrection attendanceCorrection = findById(id);
         if (attendanceCorrection.status() != AttendanceCorrectionStatus.PENDING) {
@@ -77,16 +80,12 @@ public class AttendanceCorrectionService {
                 attendanceCorrection.type(),
                 attendanceCorrection.details(),
                 AttendanceCorrectionStatus.REJECTED);
-        attendanceCorrections.put(id, rejected);
-        return rejected;
+        return correctionStore.save(rejected);
     }
 
     public AttendanceCorrection findById(UUID id) {
-        AttendanceCorrection attendanceCorrection = attendanceCorrections.get(id);
-        if (attendanceCorrection == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Attendance correction not found");
-        }
-        return attendanceCorrection;
+        return correctionStore.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attendance correction not found"));
     }
 
     private void validateRequest(AttendanceCorrectionRequest request) {

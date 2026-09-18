@@ -9,6 +9,8 @@
 **Database:** PostgreSQL
 **Date:** August 2026
 
+> **Implementation status:** the P0 core (auth, workforce, scheduling, attendance, leave/overtime approvals, handover, audit, reports) is implemented, with shift swap, attendance correction, notifications, Redis caching, the transactional PostgreSQL outbox/event bus with optional Kafka relay, observability, the workforce risk intelligence pipeline, advanced reports and dashboards, API rate limiting, an AI workforce assistant, predictive absenteeism analytics, demand forecasting, and advisory auto-scheduling already delivered. PostgreSQL persists the workforce/request core, risk data, outbox, and notifications via Flyway; in-memory stores are retained only for the test profile. Real notification delivery (external providers) and external HR/payroll/mobile/biometric integrations remain on the roadmap — see [ROADMAP.md](ROADMAP.md).
+
 ---
 
 # 1. Product Overview

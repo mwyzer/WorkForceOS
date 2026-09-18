@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class EventPublisher {
@@ -20,13 +21,15 @@ public class EventPublisher {
         this.handlers = handlers;
     }
 
+    @Transactional
     public void publish(DomainEvent event) {
         OffsetDateTime now = OffsetDateTime.now();
-        OutboxEntry entry = new OutboxEntry(event.eventId(), event, OutboxStatus.PENDING, 0, now, now, null);
+        OutboxEntry entry = new OutboxEntry(event.eventId(), event, OutboxStatus.PENDING, 0, now, now, null, null);
         outbox.save(entry);
         process(entry);
     }
 
+    @Transactional
     public void process(OutboxEntry entry) {
         OffsetDateTime now = OffsetDateTime.now();
         boolean allSucceeded = true;

@@ -36,3 +36,13 @@
 
 - **US-PLAT-001** As an operator, I want important actions audited so that changes are accountable.
 - **US-PLAT-002** As an API client, I want consistent errors and idempotent critical commands so that failures can be handled safely.
+- **US-PLAT-003** As an operator, I want a view of the event outbox and received events so that delivery failures are visible.
+- **US-PLAT-004** As an operator, I want health and outbox-health signals so that I can react before failures become user-visible.
+
+## Workforce Risk Intelligence
+
+- **US-RSK-001** As a manager, I want the platform to surface coverage shortfalls and staffing liquidity risks so that I can plan coverage before it is critical.
+- **US-RSK-002** As a manager, I want each risk explained with severity, impact, and recommended actions so that I can decide what to do.
+- **US-RSK-003** As a supervisor, I want a dashboard of open alerts that I can resolve so that follow-ups are tracked.
+- **US-RSK-004** As a manager, I want to trigger an analysis on demand and see a trend of detections so that I can review changes over time.
+- **US-RSK-005** As an analyst, I want recorded attendance and overtime dependency risks so that underlying patterns (lateness, overtime, single-coverage overnight shifts) are not missed.

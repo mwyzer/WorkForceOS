@@ -1,6 +1,8 @@
 package com.workforceos.authentication;
 
 import java.util.Set;
+import java.util.UUID;
 
-record UserAccount(String username, String passwordHash, Set<String> roles, boolean active) {
+public record UserAccount(String username, UUID organizationId, String passwordHash, Set<String> roles,
+        boolean active) {
 }
