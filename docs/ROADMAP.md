@@ -39,7 +39,7 @@ Dates are intentionally omitted until implementation capacity, dependencies, and
 - [x] AI workforce assistant (offline intent-classified answers grounded in live workforce data via `/api/v1/assistant/ask`, with optional OpenAI-compatible LLM answering and heuristic fallback; see `com.workforceos.assistant`).
 - [x] Predictive workforce analytics and absenteeism insights (`GET /api/v1/analytics/absenteeism` scores per-employee absence/late rates, trend, and drivers; `GET /api/v1/analytics/forecast` projects weekday staffing demand against scheduled shifts and approved leave).
 - [x] Automated scheduling and demand forecasting (`GET /api/v1/rosters/{id}/auto-schedule` returns an advisory plan proposing eligible, non-conflicting, non-leave staff to cover understaffed shift slots; demand forecasting feeds target headcount).
-- [ ] External HR, payroll, mobile, geolocation, or biometric integrations as approved.
+- [x] External HR, payroll, mobile, geolocation, or biometric integrations as approved (vendor-neutral `OutboundIntegration` port + `IntegrationRegistry` with reference `payroll-csv` and `webhook` adapters, plus an inbound biometric clock-event adapter with optional geofence validation; all config-gated and disabled by default).
 
 ## Prioritization Principles
 

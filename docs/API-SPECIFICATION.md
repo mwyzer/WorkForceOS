@@ -60,6 +60,7 @@ Implemented endpoints:
 | Risk intelligence | `POST /risk/analyze`, `GET /risk/summary`, `GET /risk/assessments`, `GET /risk/assessments/{id}/recommendations`, `GET /risk/trend`, `GET /risk/alerts`, `POST /risk/alerts/{id}/resolve` |
 | Assistant | `POST /assistant/ask` |
 | Analytics | `GET /analytics/absenteeism?windowDays=<n>`, `GET /analytics/forecast?horizonDays=<n>` |
+| Integrations | `GET /integrations`, `POST /integrations/biometric/clock-events` (config-gated) |
 | Events | `GET /events/outbox`, `GET /events/received` |
 
 Shift swap and attendance corrections were planned as P1 and are now implemented (in-memory). Break events and `GET/PATCH` on several resources are not yet exposed by the API.

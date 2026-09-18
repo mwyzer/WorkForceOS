@@ -48,7 +48,7 @@ The `assistant` module answers natural-language questions read-only: `AssistantI
 
 The `analytics` module adds explainable (non-black-box) intelligence: `AbsenteeismAnalyticsService` scores per-employee absence/late risk from attendance and approved leave, and `DemandForecastService` projects per-weekday staffing demand from historical assignment volume. `AutoScheduleService` consumes those signals to produce an advisory plan that fills understaffed shift slots with eligible staff, leaving conflict validation and persistence to the existing `ScheduleEngine` assignment path.
 
-External integrations are adapters behind module-owned ports. No external provider should be called directly from a controller or domain object.
+External integrations are adapters behind module-owned ports. No external provider should be called directly from a controller or domain object. The `integration` module defines an `OutboundIntegration` port discovered by `IntegrationRegistry` (reference `payroll-csv` and `webhook` adapters) and an inbound biometric clock-event adapter (`BiometricClockService`) that maps external events to `AttendanceEngine` commands with optional `GeofenceValidator` checks. All adapters are configuration-gated and disabled by default, so unconfigured providers degrade to `SKIPPED` rather than blocking startup.
 
 ## 5. Consistency Rules
 

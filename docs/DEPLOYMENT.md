@@ -63,6 +63,10 @@ Configuration is environment-injectable with safe development defaults. The Dock
 | `WORKFORCE_ANALYTICS_ABSENTEEISM_WINDOW_DAYS` | `30` | Default lookback window for absenteeism insights |
 | `WORKFORCE_ANALYTICS_FORECAST_HORIZON_DAYS` / `WORKFORCE_ANALYTICS_FORECAST_LOOKBACK_WEEKS` | `7` / `4` | Demand forecast horizon and history window |
 | `WORKFORCE_AUTO_SCHEDULE_TARGET_HEADCOUNT` | `1` | Staffing target auto-scheduling fills per shift slot |
+| `WORKFORCE_INTEGRATIONS_PAYROLL_CSV_ENABLED` / `_DIRECTORY` | `false` / temp dir | CSV payroll export adapter (writes `payroll-export.csv`) |
+| `WORKFORCE_INTEGRATIONS_WEBHOOK_ENABLED` / `_URL` / `_API_KEY` / `_TIMEOUT_MS` | `false` / empty / empty / `5000` | JSON webhook adapter for HR/payroll systems |
+| `WORKFORCE_INTEGRATIONS_BIOMETRIC_ENABLED` | `false` | Enables inbound biometric clock-event ingestion |
+| `WORKFORCE_INTEGRATIONS_GEOFENCE_LATITUDE` / `_LONGITUDE` / `_RADIUS_METERS` | empty / empty / `500` | Optional circular site geofence for clock events |
 | `WORKFORCE_RISK_*` | see [FSD §6](FSD.md) | Risk pipeline settings, including optional LLM (`WORKFORCE_RISK_AI_*`) |
 
 Required configuration includes database URL and credentials, token signing configuration, allowed origins, logging/telemetry destination, and environment name. Secrets use a managed secret store where available.

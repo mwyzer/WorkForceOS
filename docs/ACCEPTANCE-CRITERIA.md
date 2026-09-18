@@ -82,6 +82,12 @@ Each criterion is accepted only when the behavior, authorization, persistence, a
 - Demand forecasting projects per-weekday staffing demand from historical assignment volume and compares it with scheduled shifts and approved leave to flag shortage days over a configurable horizon.
 - Auto-scheduling returns an advisory plan that fills understaffed shift slots with active, non-conflicting, non-leave employees and never writes assignments without review.
 
+## External Integrations
+
+- Outbound integrations implement a vendor-neutral `OutboundIntegration` port and are discoverable with their enabled state via `GET /api/v1/integrations`.
+- Reference adapters (payroll CSV export, HR webhook) are disabled by default and report `SKIPPED` when unconfigured, so the application boots without provider credentials.
+- Inbound biometric/mobile clock events are accepted only when enabled, map to attendance commands, and return a per-event outcome (never failing the batch), with optional circular geofence rejection.
+
 ## Release Evidence
 
 Before MVP approval, attach API contract tests, integration test results, security test results, migration verification, performance measurements, and deployment rollback evidence. Unresolved deviations require product-owner approval.

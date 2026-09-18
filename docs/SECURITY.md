@@ -22,6 +22,7 @@ Implemented: the access token is a bearer token signed with HMAC-SHA256 over `ba
 - Use secure response headers and a restrictive CORS policy.
 - Return generic authentication errors and standardized safe error responses.
 - Tune and validate rate limiting for authentication and public-facing endpoints; per-client-IP limits are enforced by the `RateLimitFilter` token bucket (`workforce.api-rate-limit.*`), returning HTTP 429 with `Retry-After`, and should be layered behind an edge proxy in production.
+- Treat integration adapters as untrusted boundaries: outbound adapters are disabled until credentials are configured, and the inbound biometric clock-event endpoint stays disabled (`workforce.integrations.biometric.enabled=false`) and requires authentication and optional geofence validation.
 - Use idempotency keys for attendance and other retry-sensitive commands.
 
 ## 3. Data Protection
