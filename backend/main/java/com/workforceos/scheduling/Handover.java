@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record Handover(
         UUID id,
+        UUID organizationId,
         UUID employeeId,
         List<HandoverItem> items,
         HandoverStatus status) {

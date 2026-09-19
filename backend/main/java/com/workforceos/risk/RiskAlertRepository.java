@@ -8,9 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 interface RiskAlertRepository extends JpaRepository<RiskAlertEntity, UUID> {
 
-    Optional<RiskAlertEntity> findByAssessmentId(UUID assessmentId);
+    Optional<RiskAlertEntity> findByOrganizationIdAndAssessmentId(UUID organizationId, UUID assessmentId);
+
+    List<RiskAlertEntity> findAllByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
 
     List<RiskAlertEntity> findAllByOrderByCreatedAtDesc();
 
-    long countByStatus(RiskAlertStatus status);
+    long countByOrganizationIdAndStatus(UUID organizationId, RiskAlertStatus status);
 }

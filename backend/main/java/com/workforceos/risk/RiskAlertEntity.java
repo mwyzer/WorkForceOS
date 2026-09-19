@@ -17,6 +17,9 @@ class RiskAlertEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "assessment_id", nullable = false)
     private UUID assessmentId;
 
@@ -40,8 +43,9 @@ class RiskAlertEntity {
     protected RiskAlertEntity() {
     }
 
-    RiskAlertEntity(UUID id, UUID assessmentId, RiskSeverity severity, String summary) {
+    RiskAlertEntity(UUID id, UUID organizationId, UUID assessmentId, RiskSeverity severity, String summary) {
         this.id = id;
+        this.organizationId = organizationId;
         this.assessmentId = assessmentId;
         this.severity = severity;
         this.status = RiskAlertStatus.OPEN;
@@ -51,6 +55,10 @@ class RiskAlertEntity {
 
     RiskAlertStatus status() {
         return status;
+    }
+
+    UUID organizationId() {
+        return organizationId;
     }
 
     void resolve() {

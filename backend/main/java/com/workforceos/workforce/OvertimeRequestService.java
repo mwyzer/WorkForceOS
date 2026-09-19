@@ -17,6 +17,7 @@ import com.workforceos.event.EventPublisher;
 import com.workforceos.event.EventTypes;
 import com.workforceos.event.Payloads;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -35,9 +36,14 @@ public class OvertimeRequestService {
         this.currentUser = currentUser;
     }
 
-    @Cacheable("overtimeRequests")
+    @Cacheable(value = "overtimeRequests",
+            key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public List<OvertimeRequest> findAll() {
-        return overtimeRequestRepository.findAll().stream().map(OvertimeRequestEntity::toRecord).toList();
+        UUID tenantId = TenantScope.require();
+        return overtimeRequestRepository.findAll().stream()
+                .filter(request -> request.organizationId() != null && request.organizationId().equals(tenantId))
+                .map(OvertimeRequestEntity::toRecord)
+                .toList();
     }
 
     @CacheEvict(value = { "overtimeRequests", "overtime-request-report" }, allEntries = true)
@@ -46,6 +52,7 @@ public class OvertimeRequestService {
 
         OvertimeRequestEntity overtimeRequest = new OvertimeRequestEntity(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.employeeId(),
                 request.date(),
                 request.hours(),
@@ -61,6 +68,7 @@ public class OvertimeRequestService {
     public OvertimeRequest approve(UUID id) {
         OvertimeRequestEntity overtimeRequest = overtimeRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Overtime request not found"));
+        TenantScope.assertAccess(overtimeRequest.organizationId());
         if (overtimeRequest.getStatus() != OvertimeRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be approved");
         }
@@ -68,7 +76,8 @@ public class OvertimeRequestService {
         overtimeRequest.approve();
         overtimeRequestRepository.save(overtimeRequest);
         OvertimeRequest approved = overtimeRequest.toRecord();
-        eventPublisher.publish(DomainEvents.of(EventTypes.OVERTIME_APPROVED, null, "OvertimeRequest", approved.id(),
+        eventPublisher.publish(DomainEvents.of(EventTypes.OVERTIME_APPROVED, TenantScope.require(), "OvertimeRequest",
+                approved.id(),
                 currentUser.username(),
                 Payloads.json(java.util.Map.of(
                         "employeeId", approved.employeeId().toString(),
@@ -81,6 +90,7 @@ public class OvertimeRequestService {
     public OvertimeRequest reject(UUID id) {
         OvertimeRequestEntity overtimeRequest = overtimeRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Overtime request not found"));
+        TenantScope.assertAccess(overtimeRequest.organizationId());
         if (overtimeRequest.getStatus() != OvertimeRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING overtime requests can be rejected");
         }
@@ -88,7 +98,8 @@ public class OvertimeRequestService {
         overtimeRequest.reject();
         overtimeRequestRepository.save(overtimeRequest);
         OvertimeRequest rejected = overtimeRequest.toRecord();
-        eventPublisher.publish(DomainEvents.of(EventTypes.OVERTIME_REJECTED, null, "OvertimeRequest", rejected.id(),
+        eventPublisher.publish(DomainEvents.of(EventTypes.OVERTIME_REJECTED, TenantScope.require(), "OvertimeRequest",
+                rejected.id(),
                 currentUser.username(),
                 Payloads.json(java.util.Map.of(
                         "employeeId", rejected.employeeId().toString(),
@@ -98,9 +109,10 @@ public class OvertimeRequestService {
     }
 
     public OvertimeRequest findById(UUID id) {
-        return overtimeRequestRepository.findById(id)
-                .map(OvertimeRequestEntity::toRecord)
+        OvertimeRequestEntity overtimeRequest = overtimeRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Overtime request not found"));
+        TenantScope.assertAccess(overtimeRequest.organizationId());
+        return overtimeRequest.toRecord();
     }
 
     private void validateRequest(OvertimeRequestRequest request) {

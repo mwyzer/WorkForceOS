@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.workforceos.approval.ApprovalDecision;
 import com.workforceos.approval.ApprovalEngine;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -29,7 +30,10 @@ public class ShiftSwapRequestService {
     }
 
     public List<ShiftSwapRequest> findAll() {
-        return shiftSwapRequestStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return shiftSwapRequestStore.findAll().stream()
+                .filter(request -> request.organizationId() != null && request.organizationId().equals(tenantId))
+                .toList();
     }
 
     @Transactional
@@ -38,6 +42,7 @@ public class ShiftSwapRequestService {
 
         ShiftSwapRequest shiftSwapRequest = new ShiftSwapRequest(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.requestingEmployeeId(),
                 request.targetEmployeeId(),
                 request.offeredDate(),
@@ -59,6 +64,7 @@ public class ShiftSwapRequestService {
         approvalEngine.decide(id, ApprovalDecision.APPROVED, currentUser.username(), null);
         ShiftSwapRequest approved = new ShiftSwapRequest(
                 shiftSwapRequest.id(),
+                shiftSwapRequest.organizationId(),
                 shiftSwapRequest.requestingEmployeeId(),
                 shiftSwapRequest.targetEmployeeId(),
                 shiftSwapRequest.offeredDate(),
@@ -77,6 +83,7 @@ public class ShiftSwapRequestService {
         approvalEngine.decide(id, ApprovalDecision.REJECTED, currentUser.username(), null);
         ShiftSwapRequest rejected = new ShiftSwapRequest(
                 shiftSwapRequest.id(),
+                shiftSwapRequest.organizationId(),
                 shiftSwapRequest.requestingEmployeeId(),
                 shiftSwapRequest.targetEmployeeId(),
                 shiftSwapRequest.offeredDate(),
@@ -88,6 +95,10 @@ public class ShiftSwapRequestService {
 
     public ShiftSwapRequest findById(UUID id) {
         return shiftSwapRequestStore.findById(id)
+                .map(request -> {
+                    TenantScope.assertAccess(request.organizationId());
+                    return request;
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift swap request not found"));
     }
 

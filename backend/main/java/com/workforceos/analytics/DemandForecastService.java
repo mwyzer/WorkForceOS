@@ -48,7 +48,7 @@ public class DemandForecastService {
         this.lookbackWeeks = Math.max(1, Math.min(MAX_LOOKBACK_WEEKS, lookbackWeeks));
     }
 
-    @Cacheable("demand-forecast")
+    @Cacheable(value = "demand-forecast", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public DemandForecast forecast(Integer horizonDays) {
         int horizon = clampHorizon(horizonDays);
         LocalDate today = LocalDate.now();

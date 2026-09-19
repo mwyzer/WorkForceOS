@@ -15,6 +15,7 @@ The current build already provides:
 - **Error contract**: `ApiExceptionHandler` returns a single `ApiError` shape (timestamp, status, error, message, path, `traceId`, `requestId`) and logs failures with correlation identifiers.
 - **Metrics**: Micrometer gauges for the outbox (`workforceos.outbox.entries` by `PENDING`/`DELIVERED`/`FAILED`) and handled events (`workforceos.events.handled`); exposed through Spring Boot Actuator (`health`, `info`, `metrics`).
 - **Health**: `GET /api/v1/health` readiness signal, Actuator liveness/readiness probes, and an outbox health indicator that reports `DOWN` when failed entries reach `workforce.observability.outbox-failed-threshold` (default 100).
+- **Tenant boundaries**: health, metrics, and outbox/event inspection endpoints are global by design (never tenant-scoped); structured logs and audit records carry organization scope where safe, never full personal payloads.
 
 The sections below describe the complete target standard to reach before production.
 

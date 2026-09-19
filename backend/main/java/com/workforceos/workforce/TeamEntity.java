@@ -14,6 +14,9 @@ class TeamEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "department_id", nullable = false)
     private UUID departmentId;
 
@@ -26,8 +29,9 @@ class TeamEntity {
     protected TeamEntity() {
     }
 
-    TeamEntity(UUID id, UUID departmentId, String name, boolean active) {
+    TeamEntity(UUID id, UUID organizationId, UUID departmentId, String name, boolean active) {
         this.id = id;
+        this.organizationId = organizationId;
         this.departmentId = departmentId;
         this.name = name;
         this.active = active;
@@ -35,6 +39,10 @@ class TeamEntity {
 
     void deactivate() {
         this.active = false;
+    }
+
+    UUID organizationId() {
+        return organizationId;
     }
 
     Team toRecord() {

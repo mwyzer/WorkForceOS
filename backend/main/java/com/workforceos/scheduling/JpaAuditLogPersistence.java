@@ -21,6 +21,9 @@ class AuditLogEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(nullable = false)
     private String actor;
 
@@ -44,6 +47,7 @@ class AuditLogEntity {
 
     AuditLogEntity(AuditLog auditLog) {
         this.id = auditLog.id();
+        this.organizationId = auditLog.organizationId();
         this.actor = auditLog.actor();
         this.action = auditLog.action();
         this.resource = auditLog.resource();
@@ -53,7 +57,7 @@ class AuditLogEntity {
     }
 
     AuditLog toRecord() {
-        return new AuditLog(id, actor, action, resource, resourceId, details, timestamp);
+        return new AuditLog(id, organizationId, actor, action, resource, resourceId, details, timestamp);
     }
 }
 

@@ -23,6 +23,9 @@ class ShiftSwapRequestEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "requesting_employee_id", nullable = false)
     private UUID requestingEmployeeId;
 
@@ -47,6 +50,7 @@ class ShiftSwapRequestEntity {
 
     ShiftSwapRequestEntity(ShiftSwapRequest request) {
         this.id = request.id();
+        this.organizationId = request.organizationId();
         this.requestingEmployeeId = request.requestingEmployeeId();
         this.targetEmployeeId = request.targetEmployeeId();
         this.offeredDate = request.offeredDate();
@@ -56,7 +60,8 @@ class ShiftSwapRequestEntity {
     }
 
     ShiftSwapRequest toRecord() {
-        return new ShiftSwapRequest(id, requestingEmployeeId, targetEmployeeId, offeredDate, requestedDate, reason,
+        return new ShiftSwapRequest(id, organizationId, requestingEmployeeId, targetEmployeeId, offeredDate,
+                requestedDate, reason,
                 status);
     }
 }

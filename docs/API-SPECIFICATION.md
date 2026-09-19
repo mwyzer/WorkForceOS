@@ -33,6 +33,18 @@ Login accepts `username` and `password`. Successful login returns:
 
 The `accessToken` is a signed bearer token (HMAC-SHA256 over `base64url(username:expiry)` using `workforce.auth.signing-key`), valid for 1 hour. It is not a JWT; JWT adoption is a pending decision. Invalid credentials return `401 Unauthorized` without revealing whether the identity exists. A default `admin` account (roles `ADMIN`) is bootstrapped when the identity store is empty, and a `manager` account (roles `MANAGER`) is always ensured.
 
+### 2.1 Organization administration
+
+```http
+POST /api/v1/admin/accounts
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{"username":"operator","password":"secret","organizationId":"00000000-0000-0000-0000-000000000002","roles":["MANAGER"]}
+```
+
+`ADMIN`-only. Provisions an account owned by the given organization; the account authenticates against that organization only. Returns `201 Created` with the account record, or `400 Bad Request` when required fields are missing. `409 Conflict` when the username already exists.
+
 ## 3. Resource Endpoints
 
 Implemented endpoints:
@@ -41,6 +53,8 @@ Implemented endpoints:
 | --- | --- |
 | Auth | `POST /auth/login` |
 | Health | `GET /health` |
+| Organizations | `GET /organizations`, `POST /organizations`, `GET /organizations/{id}`, `PATCH /organizations/{id}` (all `ADMIN`-only), `GET /organizations/current` (any authenticated user; resolves the caller's tenant) |
+| Admin | `POST /admin/accounts` (`ADMIN`-only; provisions a user account scoped to an organization) |
 | Dashboard | `GET /dashboard/summary`, `GET /dashboard/operations` |
 | Employees | `GET/POST /employees`, `GET/PUT/DELETE /employees/{id}` |
 | Departments | `GET/POST /departments`, `GET/DELETE /departments/{id}` |
@@ -99,7 +113,7 @@ Errors are returned through a single `ApiExceptionHandler` with this shape:
 
 ## 6. Authorization Expectations
 
-Employees may access their own schedules, attendance, and requests. Supervisors are limited to authorized teams. Managers and HR receive organization-scoped administrative access. Administrators manage system access. Every endpoint must document role and organization-scope checks.
+Employees may access their own schedules, attendance, and requests. Supervisors are limited to authorized teams. Managers and HR receive organization-scoped administrative access. System administrators (`ADMIN`) manage system access and organizations. Cross-tenant resource access (by organization) returns `404` to avoid disclosing existence. Every endpoint must document role and organization-scope checks.
 
 ## 7. Contract Governance
 

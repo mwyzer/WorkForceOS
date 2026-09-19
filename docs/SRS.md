@@ -8,7 +8,7 @@ This SRS translates the business and product requirements into a testable softwa
 
 ## 2. Scope
 
-The MVP covers authentication, RBAC, workforce and organizational data, shifts, rosters, attendance, leave, overtime, approvals, shift handover, audit logging, operational queries, and workforce risk intelligence (risk engine, LLM/heuristic analysis, persisted assessments and alerts, dashboard UI). Caching (Redis read-through), notifications, the transactional PostgreSQL outbox/event bus with optional Kafka relay, shift swaps, attendance corrections, advanced reports and dashboards, API rate limiting, an AI workforce assistant (offline heuristic with optional LLM), predictive absenteeism analytics, demand forecasting, advisory auto-scheduling, and a config-gated external integration framework (payroll CSV/webhook outbound, biometric clock ingestion with geofencing) are implemented in the current build; concrete vendor rollouts require business approval.
+The MVP covers authentication, RBAC, workforce and organizational data, shifts, rosters, attendance, leave, overtime, approvals, shift handover, audit logging, operational queries, and workforce risk intelligence (risk engine, LLM/heuristic analysis, persisted assessments and alerts, dashboard UI). Caching (Redis read-through), notifications, the transactional PostgreSQL outbox/event bus with optional Kafka relay, shift swaps, attendance corrections, advanced reports and dashboards, API rate limiting, an AI workforce assistant (offline heuristic with optional LLM), predictive absenteeism analytics, demand forecasting, advisory auto-scheduling, a config-gated external integration framework (payroll CSV/webhook outbound, biometric clock ingestion with geofencing), and multi-tenant organization administration (organization CRUD, per-tenant account provisioning, service-layer tenant isolation across every tenant-owned domain) are implemented in the current build; concrete vendor rollouts require business approval.
 
 Payroll, recruitment, performance management, full HRIS, hardware integrations, mobile applications, and deeper AI prediction are outside the initial release.
 
@@ -28,6 +28,8 @@ Payroll, recruitment, performance management, full HRIS, hardware integrations, 
 - Successful authentication shall return an access token.
 - Protected resources shall reject missing, expired, malformed, or unauthorized tokens.
 - Authorization shall enforce role and resource ownership rules.
+- `ADMIN` users shall manage organizations (create, read, update, and list) and provision user accounts owned by a specific organization; a provisioned account shall authenticate against its own organization only.
+- All tenant-owned reads and writes shall be scoped to the caller's organization; access to resources owned by another organization shall fail with `404` and not disclose their existence.
 
 ### Workforce and scheduling
 

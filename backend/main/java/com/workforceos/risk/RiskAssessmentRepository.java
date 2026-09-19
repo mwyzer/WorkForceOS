@@ -11,5 +11,7 @@ interface RiskAssessmentRepository extends JpaRepository<RiskAssessmentEntity, U
 
     Optional<RiskAssessmentEntity> findByDedupeKey(String dedupeKey);
 
+    List<RiskAssessmentEntity> findAllByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
+
     List<RiskAssessmentEntity> findAllByOrderByCreatedAtDesc();
 }

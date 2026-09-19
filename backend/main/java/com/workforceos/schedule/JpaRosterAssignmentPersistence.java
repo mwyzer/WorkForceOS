@@ -20,6 +20,9 @@ class RosterAssignmentEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "roster_id", nullable = false)
     private UUID rosterId;
 
@@ -43,6 +46,7 @@ class RosterAssignmentEntity {
 
     RosterAssignmentEntity(RosterAssignment assignment) {
         this.id = assignment.id();
+        this.organizationId = assignment.organizationId();
         this.rosterId = assignment.rosterId();
         this.employeeId = assignment.employeeId();
         this.shiftTemplateId = assignment.shiftTemplateId();
@@ -52,7 +56,7 @@ class RosterAssignmentEntity {
     }
 
     RosterAssignment toRecord() {
-        return new RosterAssignment(id, rosterId, employeeId, shiftTemplateId, start, end, active);
+        return new RosterAssignment(id, organizationId, rosterId, employeeId, shiftTemplateId, start, end, active);
     }
 }
 

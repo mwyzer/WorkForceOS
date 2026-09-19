@@ -17,6 +17,7 @@ import com.workforceos.event.EventPublisher;
 import com.workforceos.event.EventTypes;
 import com.workforceos.event.Payloads;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -38,12 +39,17 @@ public class ScheduleEngine {
     }
 
     public List<ShiftTemplate> findAllShifts() {
-        return shiftStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return shiftStore.findAll().stream()
+                .filter(shift -> shift.organizationId() != null && shift.organizationId().equals(tenantId))
+                .toList();
     }
 
     public ShiftTemplate findShift(UUID id) {
-        return shiftStore.findById(id)
+        ShiftTemplate shift = shiftStore.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift template not found"));
+        TenantScope.assertAccess(shift.organizationId());
+        return shift;
     }
 
     @Transactional
@@ -60,18 +66,23 @@ public class ScheduleEngine {
     }
 
     public List<Roster> findAllRosters() {
-        return rosterStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return rosterStore.findAll().stream()
+                .filter(roster -> roster.organizationId() != null && roster.organizationId().equals(tenantId))
+                .toList();
     }
 
     public Roster findRoster(UUID id) {
-        return rosterStore.findById(id)
+        Roster roster = rosterStore.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Roster not found"));
+        TenantScope.assertAccess(roster.organizationId());
+        return roster;
     }
 
     @Transactional
     public Roster createRoster(RosterRequest request) {
         validateRoster(request);
-        return rosterStore.save(new Roster(UUID.randomUUID(), request.organizationId(), request.name().trim(),
+        return rosterStore.save(new Roster(UUID.randomUUID(), TenantScope.require(), request.name().trim(),
                 RosterStatus.DRAFT, java.time.OffsetDateTime.now(), true));
     }
 
@@ -101,7 +112,11 @@ public class ScheduleEngine {
     }
 
     public List<RosterAssignment> findAllAssignments() {
-        return assignmentStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return assignmentStore.findAll().stream()
+                .filter(assignment -> assignment.organizationId() != null
+                        && assignment.organizationId().equals(tenantId))
+                .toList();
     }
 
     @Transactional
@@ -117,7 +132,8 @@ public class ScheduleEngine {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee has overlapping roster assignments");
         }
 
-        RosterAssignment assignment = new RosterAssignment(UUID.randomUUID(), rosterId, request.employeeId(),
+        RosterAssignment assignment = new RosterAssignment(UUID.randomUUID(), TenantScope.require(), rosterId,
+                request.employeeId(),
                 request.shiftTemplateId(), request.start(), request.end(), true);
         return assignmentStore.save(assignment);
     }
@@ -158,7 +174,7 @@ public class ScheduleEngine {
         LocalTime end = request.endTime();
         return new ShiftTemplate(
                 id,
-                request.organizationId(),
+                TenantScope.require(),
                 request.name().trim(),
                 start,
                 end,
@@ -169,12 +185,11 @@ public class ScheduleEngine {
 
     private void validateShift(ShiftTemplateRequest request) {
         if (request == null
-                || request.organizationId() == null
                 || request.name() == null
                 || request.name().isBlank()
                 || request.startTime() == null
                 || request.endTime() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Shift name, organization, start, and end are required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Shift name, start, and end are required");
         }
         if (request.startTime().equals(request.endTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Shift start and end cannot be equal");
@@ -192,8 +207,8 @@ public class ScheduleEngine {
     }
 
     private void validateRoster(RosterRequest request) {
-        if (request == null || request.organizationId() == null || ValidationUtils.isBlank(request.name())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization and roster name are required");
+        if (request == null || ValidationUtils.isBlank(request.name())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Roster name is required");
         }
     }
 

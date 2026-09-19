@@ -11,7 +11,9 @@
 - Deny by default and reject self-approval.
 - Deactivate users and revoke or expire access according to account policy.
 
-Tenant isolation: shared-schema multi-tenancy with an `organization_id` discriminator on every tenant-owned table. `TenantContextFilter` resolves the authenticated user's organization into a per-request `TenantContext` that persistence-layer reads and writes are scoped to; the MVP resolves every account to the seeded default organization. See [DATABASE-DESIGN.md §4](DATABASE-DESIGN.md).
+Tenant isolation: shared-schema multi-tenancy with an `organization_id` discriminator on every tenant-owned table. `TenantContextFilter` resolves the authenticated user's organization into a per-request `TenantContext`; service-layer reads and writes are scoped through `TenantScope` (`require`/`force`/`assertAccess`), with `get`/`assert` acting as 404s to avoid leaking the existence of resources in other tenants. Every tenant-owned domain is now scoped (see [DATABASE-DESIGN.md §4](DATABASE-DESIGN.md)); report/analytics/dashboard caches are tenant-keyed, and background event projectors derive tenant from the event's `organization_id`. PostgreSQL Row-Level Security remains a planned defense-in-depth layer (§9).
+
+Administration: organization management and account provisioning are guarded by a system-admin role through `CurrentUser.requireAdmin()` (a no-op when `spring.security.enabled=false` so unit-test contracts hold). The default `admin` account (`ADMIN`) can create organizations and provision per-tenant accounts via `POST /api/v1/admin/accounts`; a provisioned account authenticates against its own organization only. See [DATABASE-DESIGN.md §4](DATABASE-DESIGN.md).
 
 Implemented: the access token is a bearer token signed with HMAC-SHA256 over `base64url(username:expiry)` using `WORKFORCE_AUTH_SIGNING_KEY`, valid for 1 hour, re-validated against the stored (BCrypt) account on every request. Refresh tokens, rotation, and expulsion are not yet implemented. JWT adoption, key storage, issuer, and exact lifetimes remain decisions to be documented before production.
 

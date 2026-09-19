@@ -1,17 +1,13 @@
 package com.workforceos.risk;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workforceos.ai.WorkforceLlmClient;
 
 @Component
 public class LlmRiskAdvisor implements RiskAdvisorPort {
@@ -24,6 +20,22 @@ public class LlmRiskAdvisor implements RiskAdvisorPort {
             String actionEndpoint) {
     }
 
+    private static final String PROVIDER_KEY = "${workforce.risk.ai-provider:none}";
+    private static final String GENERIC_BASE_URL = "${workforce.risk.ai-base-url:}";
+    private static final String GENERIC_MODEL = "${workforce.risk.ai-model:}";
+    private static final String GENERIC_API_KEY = "${workforce.risk.ai-api-key:}";
+    private static final String GENERIC_TIMEOUT = "${workforce.risk.ai-timeout-ms:15000}";
+
+    private static final String MUSE_BASE_URL = "${workforce.risk.muse-base-url:}";
+    private static final String MUSE_MODEL = "${workforce.risk.muse-model:}";
+    private static final String MUSE_API_KEY = "${workforce.risk.muse-api-key:}";
+    private static final String MUSE_TIMEOUT = "${workforce.risk.muse-timeout-ms:15000}";
+
+    private static final String SPARK_BASE_URL = "${workforce.risk.spark-base-url:}";
+    private static final String SPARK_MODEL = "${workforce.risk.spark-model:}";
+    private static final String SPARK_API_KEY = "${workforce.risk.spark-api-key:}";
+    private static final String SPARK_TIMEOUT = "${workforce.risk.spark-timeout-ms:15000}";
+
     private static final String SYSTEM_PROMPT = """
             You are a workforce risk analyst for a shift-based operations platform. \
             You receive a structured workforce risk snapshot and must explain the business impact and propose \
@@ -34,51 +46,42 @@ public class LlmRiskAdvisor implements RiskAdvisorPort {
             """;
 
     private final ObjectMapper mapper;
-    private final String provider;
-    private final String baseUrl;
-    private final String model;
-    private final String apiKey;
-    private final int timeoutMs;
+    private final WorkforceLlmClient client;
 
     public LlmRiskAdvisor(ObjectMapper mapper,
-            @Value("${workforce.risk.ai-provider:none}") String provider,
-            @Value("${workforce.risk.ai-base-url:}") String baseUrl,
-            @Value("${workforce.risk.ai-model:}") String model,
-            @Value("${workforce.risk.ai-api-key:}") String apiKey,
-            @Value("${workforce.risk.ai-timeout-ms:15000}") int timeoutMs) {
+            @Value(PROVIDER_KEY) String provider,
+            @Value(GENERIC_BASE_URL) String openaiBaseUrl,
+            @Value(GENERIC_MODEL) String openaiModel,
+            @Value(GENERIC_API_KEY) String openaiApiKey,
+            @Value(GENERIC_TIMEOUT) int openaiTimeoutMs,
+            @Value(MUSE_BASE_URL) String museBaseUrl,
+            @Value(MUSE_MODEL) String museModel,
+            @Value(MUSE_API_KEY) String museApiKey,
+            @Value(MUSE_TIMEOUT) int museTimeoutMs,
+            @Value(SPARK_BASE_URL) String sparkBaseUrl,
+            @Value(SPARK_MODEL) String sparkModel,
+            @Value(SPARK_API_KEY) String sparkApiKey,
+            @Value(SPARK_TIMEOUT) int sparkTimeoutMs) {
         this.mapper = mapper;
-        this.provider = provider;
-        this.baseUrl = baseUrl == null ? "" : baseUrl.trim();
-        this.model = model == null ? "" : model.trim();
-        this.apiKey = apiKey == null ? "" : apiKey.trim();
-        this.timeoutMs = timeoutMs;
+        this.client = new WorkforceLlmClient(mapper, provider,
+                new WorkforceLlmClient.ProviderSettings(openaiBaseUrl, openaiModel, openaiApiKey, openaiTimeoutMs),
+                new WorkforceLlmClient.ProviderSettings(museBaseUrl, museModel, museApiKey, museTimeoutMs),
+                new WorkforceLlmClient.ProviderSettings(sparkBaseUrl, sparkModel, sparkApiKey, sparkTimeoutMs));
     }
 
     public boolean available() {
-        return "openai".equalsIgnoreCase(provider)
-                && !baseUrl.isBlank()
-                && !model.isBlank();
+        return client.available();
+    }
+
+    public String providerId() {
+        return client.providerId();
     }
 
     @Override
     public RiskAdvice analyze(StructuredRisk structured) {
-        if (!available()) {
-            throw new IllegalStateException("LLM advisor is not configured");
-        }
-        String requestBody = buildPayload(structured);
-        String responseBody = restClient().post()
-                .uri("/chat/completions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .headers(headers -> {
-                    if (!apiKey.isBlank()) {
-                        headers.setBearerAuth(apiKey);
-                    }
-                })
-                .body(requestBody)
-                .retrieve()
-                .body(String.class);
+        String content = client.chat(0.3, SYSTEM_PROMPT,
+                "Analyze this structured workforce risk snapshot:\n" + toJson(structured));
 
-        String content = extractContent(responseBody);
         AiAdvice advice;
         try {
             advice = mapper.readValue(content, AiAdvice.class);
@@ -102,41 +105,11 @@ public class LlmRiskAdvisor implements RiskAdvisorPort {
         return "llm";
     }
 
-    private RestClient restClient() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(timeoutMs);
-        factory.setReadTimeout(timeoutMs);
-        return RestClient.builder()
-                .baseUrl(baseUrl)
-                .requestFactory(factory)
-                .build();
-    }
-
-    private String buildPayload(StructuredRisk structured) {
+    private String toJson(StructuredRisk structured) {
         try {
-            String riskJson = mapper.writeValueAsString(structured);
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("model", model);
-            payload.put("temperature", 0.3);
-            payload.put("messages", List.of(
-                    Map.of("role", "system", "content", SYSTEM_PROMPT),
-                    Map.of("role", "user", "content", "Analyze this structured workforce risk snapshot:\n" + riskJson)));
-            return mapper.writeValueAsString(payload);
+            return mapper.writeValueAsString(structured);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to build LLM request payload", ex);
-        }
-    }
-
-    private String extractContent(String responseBody) {
-        try {
-            return mapper.readTree(responseBody)
-                    .path("choices")
-                    .path(0)
-                    .path("message")
-                    .path("content")
-                    .asText();
-        } catch (Exception ex) {
-            throw new IllegalStateException("Failed to parse LLM response", ex);
         }
     }
 }

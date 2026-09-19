@@ -31,6 +31,14 @@
 - **US-HR-002** As HR, I want attendance and workforce reports so that I can support operational decisions.
 - **US-ADM-001** As an administrator, I want to manage users and roles so that access follows organizational responsibility.
 - **US-ADM-002** As an administrator, I want health and audit visibility so that I can operate the platform safely.
+- **US-ADM-003** As an administrator, I want to create organizations and provision per-tenant accounts so that each organization can onboard and operate on isolated data.
+
+## Organization and Tenant Administration
+
+- **US-TEN-001** As an organization admin, I want each organization to see and modify only its own workforce data so that tenant data stays isolated.
+- **US-TEN-002** As an organization admin, I want to manage organizations (create, view, update, and activate/deactivate) so that onboarding and changes are controlled.
+- **US-TEN-003** As a tenant admin, I want my organization's dashboard, reports, and analytics to reflect only my tenant's data so that aggregation results cannot leak across tenants.
+- **US-TEN-004** As an administrator, I want cross-tenant access to look like missing data so that tenants cannot discover each other's existence.
 
 ## Cross-Cutting
 

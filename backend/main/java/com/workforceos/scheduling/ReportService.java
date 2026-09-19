@@ -55,7 +55,7 @@ public class ReportService {
         this.departmentService = departmentService;
     }
 
-    @Cacheable("leave-request-report")
+    @Cacheable(value = "leave-request-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public LeaveRequestReport getLeaveRequestReport() {
         Map<LeaveRequestStatus, Long> counts = leaveRequestService.findAll().stream()
                 .collect(Collectors.groupingBy(LeaveRequest::status, Collectors.counting()));
@@ -66,7 +66,7 @@ public class ReportService {
                 counts.getOrDefault(LeaveRequestStatus.REJECTED, 0L));
     }
 
-    @Cacheable("overtime-request-report")
+    @Cacheable(value = "overtime-request-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public OvertimeRequestReport getOvertimeRequestReport() {
         List<OvertimeRequest> allRequests = overtimeRequestService.findAll();
         Map<OvertimeRequestStatus, Long> counts = allRequests.stream()
@@ -81,7 +81,7 @@ public class ReportService {
                 totalHours);
     }
 
-    @Cacheable("attendance-report")
+    @Cacheable(value = "attendance-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public AttendanceReport getAttendanceReport() {
         List<AttendanceCalculation> calculations = attendanceEngine.calculateAll();
 
@@ -107,7 +107,7 @@ public class ReportService {
                 && session.shiftTemplateId().equals(assignment.shiftTemplateId());
     }
 
-    @Cacheable("audit-log-summary")
+    @Cacheable(value = "audit-log-summary", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public AuditLogSummary getAuditLogSummary() {
         List<AuditLog> allLogs = auditLogService.findAll();
 
@@ -118,7 +118,7 @@ public class ReportService {
         return new AuditLogSummary(allLogs.size(), distinctActors.size(), distinctActions.size(), distinctResources.size());
     }
 
-    @Cacheable("attendance-by-employee-report")
+    @Cacheable(value = "attendance-by-employee-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public List<AttendanceByEmployeeReport> getAttendanceByEmployeeReport() {
         Map<UUID, Employee> employeesById = employeeService.findAll().stream()
                 .collect(Collectors.toMap(Employee::id, employee -> employee));
@@ -144,7 +144,7 @@ public class ReportService {
                 calculations.stream().filter(AttendanceCalculation::earlyLeave).count());
     }
 
-    @Cacheable("overtime-by-employee-report")
+    @Cacheable(value = "overtime-by-employee-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public List<OvertimeByEmployeeReport> getOvertimeByEmployeeReport() {
         Map<UUID, Employee> employeesById = employeeService.findAll().stream()
                 .collect(Collectors.toMap(Employee::id, employee -> employee));
@@ -176,7 +176,7 @@ public class ReportService {
                 totalApprovedHours);
     }
 
-    @Cacheable("department-staffing-report")
+    @Cacheable(value = "department-staffing-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public List<DepartmentStaffingReport> getDepartmentStaffingReport() {
         Map<UUID, String> departmentNames = departmentService.findAll().stream()
                 .collect(Collectors.toMap(Department::id, Department::name, (first, second) -> first));

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record RosterAssignment(
         UUID id,
+        UUID organizationId,
         UUID rosterId,
         UUID employeeId,
         UUID shiftTemplateId,

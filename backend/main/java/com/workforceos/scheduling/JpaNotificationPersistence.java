@@ -23,6 +23,9 @@ class NotificationEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "recipient_id", nullable = false)
     private UUID recipientId;
 
@@ -61,6 +64,7 @@ class NotificationEntity {
 
     NotificationEntity(Notification notification) {
         this.id = notification.id();
+        this.organizationId = notification.organizationId();
         this.recipientId = notification.recipientId();
         this.type = notification.type();
         this.title = notification.title();
@@ -74,7 +78,8 @@ class NotificationEntity {
     }
 
     Notification toRecord() {
-        return new Notification(id, recipientId, type, title, body, channel, status, createdAt, attemptCount,
+        return new Notification(id, organizationId, recipientId, type, title, body, channel, status, createdAt,
+                attemptCount,
                 nextAttemptAt, lastError);
     }
 }

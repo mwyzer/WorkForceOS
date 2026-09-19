@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -23,11 +24,19 @@ public class NotificationService {
     }
 
     public List<Notification> findAll() {
-        return notificationStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return notificationStore.findAll().stream()
+                .filter(notification -> notification.organizationId() != null
+                        && notification.organizationId().equals(tenantId))
+                .toList();
     }
 
     public List<Notification> findByRecipientId(UUID recipientId) {
-        return notificationStore.findByRecipientId(recipientId);
+        UUID tenantId = TenantScope.require();
+        return notificationStore.findByRecipientId(recipientId).stream()
+                .filter(notification -> notification.organizationId() != null
+                        && notification.organizationId().equals(tenantId))
+                .toList();
     }
 
     @Transactional
@@ -36,6 +45,7 @@ public class NotificationService {
 
         Notification notification = new Notification(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.recipientId(),
                 request.type(),
                 request.title().trim(),
@@ -53,6 +63,10 @@ public class NotificationService {
 
     public Notification findById(UUID id) {
         return notificationStore.findById(id)
+                .map(notification -> {
+                    TenantScope.assertAccess(notification.organizationId());
+                    return notification;
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
     }
 
@@ -61,6 +75,7 @@ public class NotificationService {
         Notification notification = findById(id);
         Notification read = new Notification(
                 notification.id(),
+                notification.organizationId(),
                 notification.recipientId(),
                 notification.type(),
                 notification.title(),

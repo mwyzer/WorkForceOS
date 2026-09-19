@@ -48,10 +48,12 @@ class AutoScheduleServiceTests {
         when(scheduleEngine.findRoster(rosterId))
                 .thenReturn(new Roster(rosterId, UUID.randomUUID(), "Week 1", RosterStatus.DRAFT,
                         OffsetDateTime.now(), true));
-        RosterAssignment existing = new RosterAssignment(UUID.randomUUID(), rosterId, assigned.id(), shiftId,
+        RosterAssignment existing = new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), rosterId,
+                assigned.id(), shiftId,
                 start, end, true);
         when(scheduleEngine.findAssignments(rosterId)).thenReturn(List.of(existing));
-        RosterAssignment elsewhere = new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), conflicting.id(),
+        RosterAssignment elsewhere = new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                conflicting.id(),
                 shiftId, start.minusHours(1), end.plusHours(1), true);
         when(scheduleEngine.findAllAssignments()).thenReturn(List.of(existing, elsewhere));
         when(scheduleEngine.findAllShifts()).thenReturn(List.of(new ShiftTemplate(shiftId, UUID.randomUUID(),
@@ -85,8 +87,10 @@ class AutoScheduleServiceTests {
                 .thenReturn(new Roster(rosterId, UUID.randomUUID(), "Week 2", RosterStatus.DRAFT,
                         OffsetDateTime.now(), true));
         when(scheduleEngine.findAssignments(rosterId)).thenReturn(List.of(
-                new RosterAssignment(UUID.randomUUID(), rosterId, first.id(), shiftId, start, start.plusHours(8), true),
-                new RosterAssignment(UUID.randomUUID(), rosterId, second.id(), shiftId, start, start.plusHours(8), true)));
+                new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), rosterId, first.id(), shiftId, start,
+                        start.plusHours(8), true),
+                new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), rosterId, second.id(), shiftId, start,
+                        start.plusHours(8), true)));
         when(scheduleEngine.findAllAssignments()).thenReturn(List.of());
         when(scheduleEngine.findAllShifts()).thenReturn(List.of());
         when(employeeService.findAll()).thenReturn(List.of(first, second));

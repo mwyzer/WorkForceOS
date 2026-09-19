@@ -15,11 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.organization.OrganizationService;
+import com.workforceos.shared.ValidationUtils;
 
 @Service
 public class AuthService {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private final PasswordEncoder passwordEncoder;
+    private final UserAccountRepository userAccountRepository;
     private final UserAccountLookupService userAccountLookupService;
     private final byte[] signingKey;
 
@@ -30,6 +32,7 @@ public class AuthService {
             @Value("${workforce.auth.admin-username:admin}") String adminUsername,
             @Value("${workforce.auth.admin-password:admin}") String adminPassword) {
         this.passwordEncoder = passwordEncoder;
+        this.userAccountRepository = userAccountRepository;
         this.userAccountLookupService = userAccountLookupService;
         this.signingKey = signingKey.getBytes(StandardCharsets.UTF_8);
         if (userAccountRepository.count() == 0) {
@@ -56,6 +59,23 @@ public class AuthService {
         String payload = user.username() + ":" + expiresAt;
         return Base64.getUrlEncoder().withoutPadding().encodeToString(payload.getBytes(StandardCharsets.UTF_8))
                 + "." + sign(payload);
+    }
+
+    @org.springframework.cache.annotation.CacheEvict(value = "userAccount", key = "#username")
+    public UserAccount provisionAccount(String username, String password, java.util.UUID organizationId,
+            Set<String> roles) {
+        if (ValidationUtils.isBlank(username) || ValidationUtils.isBlank(password) || organizationId == null
+                || roles == null || roles.isEmpty() || roles.contains(null)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Username, password, organization, and roles are required");
+        }
+        if (userAccountLookupService.findUser(username) != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        }
+        UserAccountEntity account = new UserAccountEntity(username, organizationId,
+                passwordEncoder.encode(password), new java.util.LinkedHashSet<>(roles), true);
+        userAccountRepository.save(account);
+        return account.toRecord();
     }
 
     public UserAccount authenticate(String token) {

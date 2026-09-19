@@ -34,6 +34,9 @@ Specifications use the identifiers `FS-<area>-<n>`. P1/P2 items are explicitly m
 | FS-ID-03 | Protected endpoints reject missing, expired, malformed, or unauthorized tokens with a standardized error response; authorization enforces role and ownership rules. |
 | FS-ID-04 | Password hashing uses a modern adaptive algorithm; plaintext passwords are never stored or logged. |
 | FS-ID-05 | Roles `ADMIN`, `HR`, `MANAGER`, `SUPERVISOR`, `EMPLOYEE` gate capabilities per section 4. |
+| FS-ID-06 | Every tenant-owned read and write is scoped to the caller's organization via `TenantScope` (`require`/`force`/`assertAccess`); a write is forced to the current tenant and single-resource reads from another organization return `404` so tenants cannot probe each other. |
+| FS-ID-07 | `ADMIN` users manage organizations: list, read, and create (`GET/POST /api/v1/organizations`), update (`GET/PATCH /api/v1/organizations/{id}`), and resolve the caller's tenant (`GET /api/v1/organizations/current`); any other role receives `403`. |
+| FS-ID-08 | `ADMIN` provisions user accounts owned by a specific organization via `POST /api/v1/admin/accounts`; missing required fields return `400`, existing usernames return `409`, and the provisioned account authenticates against its own organization only. |
 
 ### 3.2 Workforce Management
 
@@ -74,7 +77,7 @@ Specifications use the identifiers `FS-<area>-<n>`. P1/P2 items are explicitly m
 | FS-AP-03 | Only authorized supervisors/managers act on requests; a requester can never approve their own request. |
 | FS-AP-04 | Approval of an approved-eligible leave or overtime request publishes the respective domain event, which triggers a risk recompute. |
 | FS-AP-05 | State transitions and approval history are persisted and audit logged; approved requests require a correction process before modification. |
-| FS-AP-06 | Shift swap and attendance correction workflows are implemented (in-memory stores with the same approval engine); break-event recording remains pending. |
+| FS-AP-06 | Shift swap and attendance correction workflows are implemented with the same approval engine and persisted through PostgreSQL JPA stores; break-event recording stays pending. |
 
 ### 3.6 Shift Handover
 
@@ -98,7 +101,7 @@ The pipeline converts operational data into structured, explained, and persisted
 | FS-RK-05 | Severity bands are `HIGH` (risk index ≥ 80), `MEDIUM` (50–79), and `LOW` (< 50). |
 | FS-RK-06 | Analysis is invoked on demand (`POST /api/v1/risk/analyze`) and automatically on `RosterPublished`, `LeaveApproved`, `OvertimeApproved`, and `EmployeeDeactivated` events. |
 | FS-RK-07 | A scheduled recompute runs on the configurable `workforce.risk.recompute-cron` (default `0 0 */6 * * *`). |
-| FS-RK-08 | The composite advisor (LLM first when `ai-provider=openai` and credentials exist, heuristic otherwise) adds a natural-language explanation, impact summary, and structured recommendations; any LLM failure falls back to the heuristic advisor. |
+| FS-RK-08 | The composite advisor (LLM first when `ai-provider=openai`, `muse`, or `spark` is configured and available, heuristic otherwise) adds a natural-language explanation, impact summary, and structured recommendations; any LLM failure falls back to the heuristic advisor. |
 | FS-RK-09 | The mitigation catalog contributes deterministic recommendations keyed by risk type (e.g., `CREATE_SHIFT_SWAP`, `CREATE_OVERTIME`, `NOTIFY_MANAGER`) that are merged with LLM output and de-duplicated by action type. |
 | FS-RK-10 | Assessments are persisted and de-duplicated: a new analysis reuses the existing assessment for the same `type:entityId:windowStartMillis` instead of creating a duplicate. Sliding windows are stabilized to Monday (`weekBucket`) for liquidity and the 1st of month (`monthBucket`) for attendance/overtime. |
 | FS-RK-11 | Assessments that reach `HIGH` or `MEDIUM` create or update an alert (`OPEN`), de-duplicated by assessment ID. |
@@ -112,7 +115,7 @@ The pipeline converts operational data into structured, explained, and persisted
 | ID | Behavior |
 | --- | --- |
 | FS-NT-01 | Risk alerts follow `OPEN -> RESOLVED`; only users with appropriate access can resolve alerts. |
-| FS-NT-02 | Notification intents are created and read via the API with `PENDING`/`READ` status (`GET/POST /notifications`, mark-as-read); automatic generation from domain events and real delivery adapters with delivery status are P1. |
+| FS-NT-02 | Notification intents are created via the API and generated automatically by `NotificationProjector` from domain events with delivery status (`PENDING`/`SENT`/`DELIVERED`/`FAILED`/`READ`); `NotificationDeliveryService` dispatches through per-channel adapters (in-app, logging) with attempt tracking, backoff retry, and a scheduled delivery processor. External provider channels (email, push, webhook) remain on the roadmap. |
 
 ### 3.9 Reporting
 
@@ -134,6 +137,7 @@ The pipeline converts operational data into structured, explained, and persisted
 | Capability | ADMIN | HR | MANAGER | SUPERVISOR | EMPLOYEE |
 | --- | :-: | :-: | :-: | :-: | :-: |
 | Login and view own data | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Organization admin and account provisioning | ✓ | – | – | – | – |
 | Employee CRUD and deactivation | ✓ | ✓ | – | – | – |
 | Shift templates and rosters | – | – | ✓ | ✓ | – |
 | Publish rosters | – | – | ✓ | ✓ | – |
@@ -150,6 +154,7 @@ The pipeline converts operational data into structured, explained, and persisted
 - An employee must have an active assignment before recording attendance.
 - Employees cannot be assigned to overlapping shifts.
 - Users cannot approve their own requests.
+- All tenant-owned data is scoped to the caller's organization; access to another organization's resources returns `404`.
 - Approved requests are immutable unless corrected by an authorized workflow.
 - Submitted handovers are not editable unless returned to an editable state.
 - Critical operations (attendance writes, risk analysis runs) are idempotent and transactional.
@@ -168,9 +173,14 @@ The pipeline converts operational data into structured, explained, and persisted
 | `workforce.risk.overtime-medium-hours` | `10` | Hours band for `MEDIUM` overtime dependency. |
 | `workforce.risk.labor-rate-per-hour` | `50` | Labor rate for impact estimation. |
 | `workforce.risk.recompute-cron` | `0 0 */6 * * *` | Scheduled risk recompute. |
-| `workforce.risk.ai-provider` | `none` | `none` (heuristic) or `openai`. |
-| `workforce.risk.ai-base-url` / `ai-model` / `ai-api-key` | | LLM endpoint configuration (server-side, never exposed). |
-| `workforce.risk.ai-timeout-ms` | `15000` | LLM call timeout. |
+| `workforce.risk.ai-provider` | `none` | LLM provider: `none` (heuristic), `openai`, `muse`, or `spark`. |
+| `workforce.risk.ai-base-url` / `ai-model` / `ai-api-key` | | Generic LLM endpoint configuration (server-side, never exposed); muse/spark default to these when their own keys are unset. |
+| `workforce.risk.muse-base-url` / `muse-model` / `muse-api-key` | | **Muse** provider settings; `muse-model` defaults to `muse`. |
+| `workforce.risk.spark-base-url` / `spark-model` / `spark-api-key` | | **Spark** provider settings; `spark-model` defaults to `spark-1.3`. |
+| `workforce.risk.ai-timeout-ms` | `15000` | LLM call timeout (muse/spark inherit it unless `muse-timeout-ms` / `spark-timeout-ms` are set). |
+| `workforce.assistant.ai-provider` | falls back to `workforce.risk.ai-provider` | LLM provider for the workforce assistant: `none`, `openai`, `muse`, or `spark`. |
+| `workforce.assistant.ai-base-url` / `ai-model` / `ai-api-key` | | Assistant LLM endpoint configuration, defaulting to the risk settings. |
+| `workforce.assistant.muse-*` / `spark-*` | | Assistant Muse/Spark settings (same shape as risk, falling back to the assistant generic keys). |
 
 ## 7. State Models
 

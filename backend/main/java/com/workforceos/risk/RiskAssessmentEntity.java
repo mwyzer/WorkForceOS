@@ -21,6 +21,9 @@ class RiskAssessmentEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "risk_type", nullable = false)
     private RiskType type;
@@ -69,8 +72,9 @@ class RiskAssessmentEntity {
     protected RiskAssessmentEntity() {
     }
 
-    RiskAssessmentEntity(RiskAssessment assessment, String dedupeKey) {
+    RiskAssessmentEntity(UUID organizationId, RiskAssessment assessment, String dedupeKey) {
         this.id = assessment.id();
+        this.organizationId = organizationId;
         this.type = assessment.type();
         this.severity = assessment.severity();
         this.score = assessment.score();
@@ -89,6 +93,10 @@ class RiskAssessmentEntity {
 
     UUID id() {
         return id;
+    }
+
+    UUID organizationId() {
+        return organizationId;
     }
 
     String dedupeKey() {

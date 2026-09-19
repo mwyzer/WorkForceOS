@@ -16,6 +16,7 @@ import com.workforceos.event.EventPublisher;
 import com.workforceos.event.EventTypes;
 import com.workforceos.event.Payloads;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -36,16 +37,23 @@ public class EmployeeService {
         this.currentUser = currentUser;
     }
 
-    @Cacheable("employees")
+    @Cacheable(value = "employees", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public List<Employee> findAll() {
-        return employeeRepository.findAll().stream().map(EmployeeEntity::toRecord).toList();
+        UUID tenantId = TenantScope.require();
+        return employeeRepository.findAll().stream()
+                .filter(employee -> employee.organizationId() != null
+                        && employee.organizationId().equals(tenantId))
+                .map(EmployeeEntity::toRecord)
+                .toList();
     }
 
-    @Cacheable(value = "employee", key = "#id")
+    @Cacheable(value = "employee",
+            key = "T(com.workforceos.organization.TenantContext).require().toString() + ':' + #id")
     public Employee findById(UUID id) {
-        return employeeRepository.findById(id)
-                .map(EmployeeEntity::toRecord)
+        EmployeeEntity employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
+        TenantScope.assertAccess(employee.organizationId());
+        return employee.toRecord();
     }
 
     @CacheEvict(value = "employees", allEntries = true)
@@ -59,6 +67,7 @@ public class EmployeeService {
 
         EmployeeEntity employee = new EmployeeEntity(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 employeeNumber,
                 request.firstName().trim(),
                 request.lastName().trim(),
@@ -83,6 +92,7 @@ public class EmployeeService {
         validateUpdate(request);
         EmployeeEntity employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
+        TenantScope.assertAccess(employee.organizationId());
         employee.update(
                 request.firstName().trim(),
                 request.lastName().trim(),
@@ -100,10 +110,11 @@ public class EmployeeService {
     public Employee deactivate(UUID id) {
         EmployeeEntity employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
+        TenantScope.assertAccess(employee.organizationId());
         employee.deactivate();
         employeeRepository.save(employee);
         Employee deactivated = employee.toRecord();
-        eventPublisher.publish(DomainEvents.of(EventTypes.EMPLOYEE_DEACTIVATED, null, "Employee", id,
+        eventPublisher.publish(DomainEvents.of(EventTypes.EMPLOYEE_DEACTIVATED, TenantScope.require(), "Employee", id,
                 currentUser.username(),
                 Payloads.json(java.util.Map.of(
                         "employeeId", id.toString(),

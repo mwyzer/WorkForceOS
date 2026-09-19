@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.workforceos.approval.ApprovalDecision;
 import com.workforceos.approval.ApprovalEngine;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -28,7 +29,11 @@ public class AttendanceCorrectionService {
     }
 
     public List<AttendanceCorrection> findAll() {
-        return correctionStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return correctionStore.findAll().stream()
+                .filter(correction -> correction.organizationId() != null
+                        && correction.organizationId().equals(tenantId))
+                .toList();
     }
 
     @Transactional
@@ -37,6 +42,7 @@ public class AttendanceCorrectionService {
 
         AttendanceCorrection attendanceCorrection = new AttendanceCorrection(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.employeeId(),
                 request.attendanceId(),
                 request.type(),
@@ -58,6 +64,7 @@ public class AttendanceCorrectionService {
         approvalEngine.decide(id, ApprovalDecision.APPROVED, currentUser.username(), null);
         AttendanceCorrection approved = new AttendanceCorrection(
                 attendanceCorrection.id(),
+                attendanceCorrection.organizationId(),
                 attendanceCorrection.employeeId(),
                 attendanceCorrection.attendanceId(),
                 attendanceCorrection.type(),
@@ -75,6 +82,7 @@ public class AttendanceCorrectionService {
         approvalEngine.decide(id, ApprovalDecision.REJECTED, currentUser.username(), null);
         AttendanceCorrection rejected = new AttendanceCorrection(
                 attendanceCorrection.id(),
+                attendanceCorrection.organizationId(),
                 attendanceCorrection.employeeId(),
                 attendanceCorrection.attendanceId(),
                 attendanceCorrection.type(),
@@ -85,6 +93,10 @@ public class AttendanceCorrectionService {
 
     public AttendanceCorrection findById(UUID id) {
         return correctionStore.findById(id)
+                .map(correction -> {
+                    TenantScope.assertAccess(correction.organizationId());
+                    return correction;
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attendance correction not found"));
     }
 

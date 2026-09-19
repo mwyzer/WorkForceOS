@@ -38,6 +38,18 @@ class OrganizationEntity {
         this.createdAt = createdAt;
     }
 
+    void update(String name, String timezone, Boolean active) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (timezone != null) {
+            this.timezone = timezone;
+        }
+        if (active != null) {
+            this.active = active;
+        }
+    }
+
     Organization toRecord() {
         return new Organization(id, name, timezone, active, createdAt);
     }

@@ -9,10 +9,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.TenantScope;
+
 @Service
 public class ApprovalEngine {
 
     public record ApprovalFlow(
+            UUID organizationId,
             UUID requestId,
             String requestType,
             UUID subjectId,
@@ -31,7 +34,8 @@ public class ApprovalEngine {
         if (requestId == null || requestType == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request ID and request type are required");
         }
-        approvalStore.saveFlow(new ApprovalFlow(requestId, requestType, subjectId, registrar, true));
+        approvalStore.saveFlow(new ApprovalFlow(TenantScope.require(), requestId, requestType, subjectId, registrar,
+                true));
     }
 
     @Transactional
@@ -45,6 +49,7 @@ public class ApprovalEngine {
 
         ApprovalFlow flow = approvalStore.findFlow(requestId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Approval flow not found"));
+        TenantScope.assertAccess(flow.organizationId());
         if (!flow.open()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Request has already been decided");
         }
@@ -52,24 +57,32 @@ public class ApprovalEngine {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Users cannot approve their own requests");
         }
 
-        ApprovalAction action = new ApprovalAction(requestId, flow.requestType(), decision, actorId,
+        ApprovalAction action = new ApprovalAction(flow.organizationId(), requestId, flow.requestType(), decision,
+                actorId,
                 OffsetDateTime.now(), reason);
         approvalStore.saveAction(action);
-        approvalStore.saveFlow(new ApprovalFlow(requestId, flow.requestType(), flow.subjectId(), flow.registrar(),
+        approvalStore.saveFlow(new ApprovalFlow(flow.organizationId(), requestId, flow.requestType(),
+                flow.subjectId(), flow.registrar(),
                 false));
         return action;
     }
 
     public ApprovalFlow flow(UUID requestId) {
-        return approvalStore.findFlow(requestId)
+        ApprovalFlow flow = approvalStore.findFlow(requestId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Approval flow not found"));
+        TenantScope.assertAccess(flow.organizationId());
+        return flow;
     }
 
     public List<ApprovalAction> history(UUID requestId) {
+        flow(requestId);
         return approvalStore.findHistory(requestId);
     }
 
     public List<ApprovalAction> findAllHistory() {
-        return approvalStore.findAllHistory();
+        UUID tenantId = TenantScope.require();
+        return approvalStore.findAllHistory().stream()
+                .filter(action -> action.organizationId() != null && action.organizationId().equals(tenantId))
+                .toList();
     }
 }

@@ -12,7 +12,7 @@ class UserAccountLookupService {
         this.userAccountRepository = userAccountRepository;
     }
 
-    @Cacheable(value = "userAccount", key = "#username")
+    @Cacheable(value = "userAccount", key = "#username", unless = "#result == null")
     UserAccount findUser(String username) {
         return userAccountRepository.findById(username).map(UserAccountEntity::toRecord).orElse(null);
     }

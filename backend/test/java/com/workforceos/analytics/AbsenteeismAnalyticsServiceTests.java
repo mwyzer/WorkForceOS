@@ -44,14 +44,15 @@ class AbsenteeismAnalyticsServiceTests {
 
         when(employeeService.findAll()).thenReturn(List.of(
                 new Employee(employeeId, "EMP-1", "Ada", "Lovelace", "ada@workforceos.io", null, null, true)));
-        RosterAssignment first = new RosterAssignment(UUID.randomUUID(), rosterId, employeeId, firstShift,
+        RosterAssignment first = new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), rosterId, employeeId, firstShift,
                 firstEnd.minusHours(8), firstEnd, true);
-        RosterAssignment second = new RosterAssignment(UUID.randomUUID(), rosterId, employeeId, secondShift,
+        RosterAssignment second = new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), rosterId, employeeId,
+                secondShift,
                 secondEnd.minusHours(8), secondEnd, true);
         when(scheduleEngine.findAllAssignments()).thenReturn(List.of(first, second));
 
-        AttendanceSession session = new AttendanceSession(UUID.randomUUID(), employeeId, rosterId, firstShift,
-                firstEnd.minusHours(8).plusMinutes(20), firstEnd, false);
+        AttendanceSession session = new AttendanceSession(UUID.randomUUID(), UUID.randomUUID(), employeeId, rosterId,
+                firstShift, firstEnd.minusHours(8).plusMinutes(20), firstEnd, false);
         when(attendanceEngine.calculateAll()).thenReturn(List.of(
                 new AttendanceCalculation(session, first, 460, true, false, 0)));
         when(leaveRequestService.findAll()).thenReturn(List.of());

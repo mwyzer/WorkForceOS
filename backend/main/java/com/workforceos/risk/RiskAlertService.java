@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workforceos.event.DomainEvent;
 import com.workforceos.event.EventHandler;
 import com.workforceos.event.EventTypes;
+import com.workforceos.shared.TenantScope;
 
 @Service
 public class RiskAlertService implements EventHandler {
@@ -38,7 +39,9 @@ public class RiskAlertService implements EventHandler {
 
     @Override
     public void onEvent(DomainEvent event) {
-        if (event.aggregateId() == null || alertRepository.findByAssessmentId(event.aggregateId()).isPresent()) {
+        UUID organizationId = event.organizationId() != null ? event.organizationId() : TenantScope.require();
+        if (event.aggregateId() == null || alertRepository.findByOrganizationIdAndAssessmentId(organizationId,
+                event.aggregateId()).isPresent()) {
             return;
         }
         String severityName = "HIGH";
@@ -61,24 +64,29 @@ public class RiskAlertService implements EventHandler {
                 break;
             }
         }
-        alertRepository.save(new RiskAlertEntity(UUID.randomUUID(), event.aggregateId(), severity, summary));
+        alertRepository.save(new RiskAlertEntity(UUID.randomUUID(), organizationId, event.aggregateId(), severity,
+                summary));
     }
 
     public List<RiskAlert> findAll() {
-        return alertRepository.findAllByOrderByCreatedAtDesc().stream()
+        return alertRepository.findAllByOrganizationIdOrderByCreatedAtDesc(TenantScope.require()).stream()
                 .map(RiskAlertEntity::toRecord)
                 .toList();
     }
 
     public RiskAlert findById(UUID id) {
         return alertRepository.findById(id)
-                .map(RiskAlertEntity::toRecord)
+                .map(alert -> {
+                    TenantScope.assertAccess(alert.organizationId());
+                    return alert.toRecord();
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Risk alert not found"));
     }
 
     public RiskAlert resolve(UUID id) {
         RiskAlertEntity alert = alertRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Risk alert not found"));
+        TenantScope.assertAccess(alert.organizationId());
         if (alert.status() != RiskAlertStatus.RESOLVED) {
             alert.resolve();
             alertRepository.save(alert);

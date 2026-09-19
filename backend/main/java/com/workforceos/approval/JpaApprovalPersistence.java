@@ -24,6 +24,9 @@ class ApprovalFlowEntity {
     @Column(name = "request_id")
     private UUID requestId;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "request_type", nullable = false)
     private String requestType;
 
@@ -41,6 +44,7 @@ class ApprovalFlowEntity {
 
     ApprovalFlowEntity(ApprovalEngine.ApprovalFlow flow) {
         this.requestId = flow.requestId();
+        this.organizationId = flow.organizationId();
         this.requestType = flow.requestType();
         this.subjectId = flow.subjectId();
         this.registrar = flow.registrar();
@@ -48,7 +52,7 @@ class ApprovalFlowEntity {
     }
 
     ApprovalEngine.ApprovalFlow toRecord() {
-        return new ApprovalEngine.ApprovalFlow(requestId, requestType, subjectId, registrar, open);
+        return new ApprovalEngine.ApprovalFlow(organizationId, requestId, requestType, subjectId, registrar, open);
     }
 }
 
@@ -61,6 +65,9 @@ class ApprovalActionEntity {
 
     @Id
     private UUID id;
+
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
 
     @Column(name = "request_id", nullable = false)
     private UUID requestId;
@@ -86,6 +93,7 @@ class ApprovalActionEntity {
 
     ApprovalActionEntity(ApprovalAction action) {
         this.id = UUID.randomUUID();
+        this.organizationId = action.organizationId();
         this.requestId = action.requestId();
         this.requestType = action.requestType();
         this.decision = action.decision();
@@ -95,7 +103,7 @@ class ApprovalActionEntity {
     }
 
     ApprovalAction toRecord() {
-        return new ApprovalAction(requestId, requestType, decision, actorId, decidedAt, reason);
+        return new ApprovalAction(organizationId, requestId, requestType, decision, actorId, decidedAt, reason);
     }
 }
 

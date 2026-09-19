@@ -84,6 +84,6 @@ class DemandForecastServiceTests {
 
     private static RosterAssignment assignment(OffsetDateTime start) {
         return new RosterAssignment(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                start, start.plusHours(8), true);
+                UUID.randomUUID(), start, start.plusHours(8), true);
     }
 }

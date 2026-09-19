@@ -40,4 +40,8 @@ class DepartmentEntity {
     Department toRecord() {
         return new Department(id, organizationId, name, active);
     }
+
+    UUID organizationId() {
+        return organizationId;
+    }
 }

@@ -59,7 +59,9 @@ Configuration is environment-injectable with safe development defaults. The Dock
 | `WORKFORCE_NOTIFICATIONS_DELIVERY_POLL_MS` | `5000` | Notification delivery retry poll interval |
 | `WORKFORCE_API_RATE_LIMIT_ENABLED` | `false` (`true` in Compose) | Enables token-bucket API rate limiting (HTTP 429) |
 | `WORKFORCE_API_RATE_LIMIT_PER_MINUTE` | `120` | Rate limit capacity per client IP per minute |
-| `WORKFORCE_ASSISTANT_AI_*` | falls back to `WORKFORCE_RISK_AI_*` | Optional OpenAI-compatible LLM for the workforce assistant (provider, base URL, model, API key, timeout) |
+| `WORKFORCE_ASSISTANT_AI_*` | falls back to `WORKFORCE_RISK_AI_*` | Optional OpenAI-compatible LLM for the workforce assistant (provider, base URL, model, API key, timeout); `provider` may be `openai`, `muse`, or `spark` |
+| `WORKFORCE_ASSISTANT_MUSE_*` / `WORKFORCE_ASSISTANT_SPARK_*` | fall back to `WORKFORCE_ASSISTANT_AI_*` | Muse and Spark 1.3 provider settings for the assistant (`_BASE_URL`, `_MODEL` — default `muse` / `spark-1.3` — `_API_KEY`, `_TIMEOUT_MS`) |
+| `WORKFORCE_RISK_MUSE_*` / `WORKFORCE_RISK_SPARK_*` | fall back to `WORKFORCE_RISK_AI_*` | Muse and Spark 1.3 provider settings for the risk advisor (same shape as assistant) |
 | `WORKFORCE_ANALYTICS_ABSENTEEISM_WINDOW_DAYS` | `30` | Default lookback window for absenteeism insights |
 | `WORKFORCE_ANALYTICS_FORECAST_HORIZON_DAYS` / `WORKFORCE_ANALYTICS_FORECAST_LOOKBACK_WEEKS` | `7` / `4` | Demand forecast horizon and history window |
 | `WORKFORCE_AUTO_SCHEDULE_TARGET_HEADCOUNT` | `1` | Staffing target auto-scheduling fills per shift slot |
@@ -81,4 +83,4 @@ Prefer rolling back the application to the previous compatible artifact. Databas
 
 ## 7. Operational Checks
 
-Before declaring success, verify liveness/readiness, authentication, employee read, roster read, attendance command, audit creation, database connectivity, event backlog if enabled, and alert routing. Consult [OBSERVABILITY.md](OBSERVABILITY.md) and [SECURITY.md](SECURITY.md) for release gates.
+Before declaring success, verify liveness/readiness, authentication, employee read, roster read, attendance command, audit creation, database connectivity, event backlog if enabled, and alert routing. In multi-tenant environments also verify organization administration: create an organization as `admin`, provision a tenant account, log in as it, confirm `GET /api/v1/organizations/current` resolves the new tenant, and confirm a cross-tenant read returns `404`. Consult [OBSERVABILITY.md](OBSERVABILITY.md) and [SECURITY.md](SECURITY.md) for release gates.

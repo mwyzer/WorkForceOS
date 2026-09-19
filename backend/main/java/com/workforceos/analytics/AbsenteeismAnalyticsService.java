@@ -53,7 +53,7 @@ public class AbsenteeismAnalyticsService {
         this.defaultWindowDays = defaultWindowDays;
     }
 
-    @Cacheable("absenteeism-report")
+    @Cacheable(value = "absenteeism-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public AbsenteeismReport report(Integer windowDays) {
         int window = normalizeWindow(windowDays);
         OffsetDateTime now = OffsetDateTime.now();

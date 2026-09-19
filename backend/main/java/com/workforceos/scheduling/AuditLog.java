@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record AuditLog(
         UUID id,
+        UUID organizationId,
         String actor,
         String action,
         String resource,

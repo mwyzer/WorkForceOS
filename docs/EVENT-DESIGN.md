@@ -35,6 +35,8 @@ Defined in `EventTypes` and published by domain services:
 
 `LeaveRejected` is defined but has no publishing path yet (leave has no reject endpoint). Consumers include the notification projector (`LeaveApproved`, `OvertimeApproved`, `OvertimeRejected`, `HandoverSubmitted`, `HandoverAcknowledged`, `RosterPublished`), the risk analysis scheduler (`RosterPublished`, `LeaveApproved`, `OvertimeApproved`, `EmployeeDeactivated`), the risk alert service (`CoverageRiskDetected`, `WorkforceRiskElevated`), and a demo consumer that captures events for inspection.
 
+Event-driven consumers resolve the tenant from the event's `organizationId` so their writes land in the correct organization even when the outbox is replayed outside a request context (`RiskAnalysisScheduler` and `NotificationProjector`). Global background processes that must stay unscoped (`OutboxProcessor`, `KafkaRelayer`, `NotificationDeliveryProcessor`) are explicitly global by design — see [DATABASE-DESIGN.md §4](DATABASE-DESIGN.md).
+
 ## 4. Envelope
 
 The `DomainEvent` record matches the designed envelope:

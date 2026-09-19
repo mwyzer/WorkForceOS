@@ -50,7 +50,7 @@ public class DashboardService {
         this.scheduleEngine = scheduleEngine;
     }
 
-    @Cacheable("dashboard-summary")
+    @Cacheable(value = "dashboard-summary", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public DashboardSummary getSummary() {
         List<Employee> employees = employeeService.findAll();
         List<Department> departments = departmentService.findAll();
@@ -97,7 +97,7 @@ public class DashboardService {
                 recentEmployees);
     }
 
-    @Cacheable("dashboard-operations")
+    @Cacheable(value = "dashboard-operations", key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public DashboardOperations getOperations() {
         long pendingHandovers = handoverService.findAll().stream()
                 .filter(handover -> handover.status() == HandoverStatus.SUBMITTED)

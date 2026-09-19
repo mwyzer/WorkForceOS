@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workforceos.event.DomainEvent;
 import com.workforceos.event.EventHandler;
 import com.workforceos.event.EventTypes;
+import com.workforceos.organization.TenantContext;
 import com.workforceos.schedule.RosterAssignment;
 import com.workforceos.schedule.ScheduleEngine;
 
@@ -49,26 +50,36 @@ public class NotificationProjector implements EventHandler {
 
     @Override
     public void onEvent(DomainEvent event) {
-        Map<String, String> payload = readPayload(event);
-        String employeeId = payload.get("employeeId");
-        switch (event.eventType()) {
-            case EventTypes.LEAVE_APPROVED -> notify(employeeId, NotificationType.LEAVE_APPROVED,
-                    "Leave request approved",
-                    "Your leave request starting on " + payload.getOrDefault("startDate", "") + " was approved.");
-            case EventTypes.OVERTIME_APPROVED -> notify(employeeId, NotificationType.OVERTIME_APPROVED,
-                    "Overtime approved",
-                    "Your overtime request for " + payload.getOrDefault("date", "") + " was approved.");
-            case EventTypes.OVERTIME_REJECTED -> notify(employeeId, NotificationType.OVERTIME_REJECTED,
-                    "Overtime rejected",
-                    "Your overtime request for " + payload.getOrDefault("date", "") + " was rejected.");
-            case EventTypes.HANDOVER_SUBMITTED -> notify(employeeId, NotificationType.HANDOVER_SUBMITTED,
-                    "Handover submitted",
-                    "Your handover was submitted and is pending acknowledgement.");
-            case EventTypes.HANDOVER_ACKNOWLEDGED -> notify(employeeId, NotificationType.HANDOVER_ACKNOWLEDGED,
-                    "Handover acknowledged",
-                    "Your handover was acknowledged.");
-            case EventTypes.ROSTER_PUBLISHED -> notifyRosterPublished(payload);
-            default -> {
+        boolean scopedToEvent = event.organizationId() != null && TenantContext.current().isEmpty();
+        if (scopedToEvent) {
+            TenantContext.set(event.organizationId());
+        }
+        try {
+            Map<String, String> payload = readPayload(event);
+            String employeeId = payload.get("employeeId");
+            switch (event.eventType()) {
+                case EventTypes.LEAVE_APPROVED -> notify(employeeId, NotificationType.LEAVE_APPROVED,
+                        "Leave request approved",
+                        "Your leave request starting on " + payload.getOrDefault("startDate", "") + " was approved.");
+                case EventTypes.OVERTIME_APPROVED -> notify(employeeId, NotificationType.OVERTIME_APPROVED,
+                        "Overtime approved",
+                        "Your overtime request for " + payload.getOrDefault("date", "") + " was approved.");
+                case EventTypes.OVERTIME_REJECTED -> notify(employeeId, NotificationType.OVERTIME_REJECTED,
+                        "Overtime rejected",
+                        "Your overtime request for " + payload.getOrDefault("date", "") + " was rejected.");
+                case EventTypes.HANDOVER_SUBMITTED -> notify(employeeId, NotificationType.HANDOVER_SUBMITTED,
+                        "Handover submitted",
+                        "Your handover was submitted and is pending acknowledgement.");
+                case EventTypes.HANDOVER_ACKNOWLEDGED -> notify(employeeId, NotificationType.HANDOVER_ACKNOWLEDGED,
+                        "Handover acknowledged",
+                        "Your handover was acknowledged.");
+                case EventTypes.ROSTER_PUBLISHED -> notifyRosterPublished(payload);
+                default -> {
+                }
+            }
+        } finally {
+            if (scopedToEvent) {
+                TenantContext.clear();
             }
         }
     }

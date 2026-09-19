@@ -17,6 +17,9 @@ class LeaveRequestEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "employee_id", nullable = false)
     private UUID employeeId;
 
@@ -36,9 +39,10 @@ class LeaveRequestEntity {
     protected LeaveRequestEntity() {
     }
 
-    LeaveRequestEntity(UUID id, UUID employeeId, LocalDate startDate, LocalDate endDate, String reason,
-            LeaveRequestStatus status) {
+    LeaveRequestEntity(UUID id, UUID organizationId, UUID employeeId, LocalDate startDate, LocalDate endDate,
+            String reason, LeaveRequestStatus status) {
         this.id = id;
+        this.organizationId = organizationId;
         this.employeeId = employeeId;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -56,6 +60,10 @@ class LeaveRequestEntity {
 
     UUID getEmployeeId() {
         return employeeId;
+    }
+
+    UUID organizationId() {
+        return organizationId;
     }
 
     void approve() {

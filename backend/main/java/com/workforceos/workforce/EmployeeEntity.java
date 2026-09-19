@@ -14,6 +14,9 @@ class EmployeeEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "employee_number", nullable = false, unique = true)
     private String employeeNumber;
 
@@ -38,9 +41,10 @@ class EmployeeEntity {
     protected EmployeeEntity() {
     }
 
-    EmployeeEntity(UUID id, String employeeNumber, String firstName, String lastName, String email,
-            UUID departmentId, UUID teamId, boolean active) {
+    EmployeeEntity(UUID id, UUID organizationId, String employeeNumber, String firstName, String lastName,
+            String email, UUID departmentId, UUID teamId, boolean active) {
         this.id = id;
+        this.organizationId = organizationId;
         this.employeeNumber = employeeNumber;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -60,6 +64,10 @@ class EmployeeEntity {
         this.email = email;
         this.departmentId = departmentId;
         this.teamId = teamId;
+    }
+
+    UUID organizationId() {
+        return organizationId;
     }
 
     Employee toRecord() {

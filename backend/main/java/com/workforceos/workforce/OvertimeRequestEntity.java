@@ -17,6 +17,9 @@ class OvertimeRequestEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "employee_id", nullable = false)
     private UUID employeeId;
 
@@ -36,9 +39,10 @@ class OvertimeRequestEntity {
     protected OvertimeRequestEntity() {
     }
 
-    OvertimeRequestEntity(UUID id, UUID employeeId, LocalDate date, Double hours, String reason,
-            OvertimeRequestStatus status) {
+    OvertimeRequestEntity(UUID id, UUID organizationId, UUID employeeId, LocalDate date, Double hours,
+            String reason, OvertimeRequestStatus status) {
         this.id = id;
+        this.organizationId = organizationId;
         this.employeeId = employeeId;
         this.date = date;
         this.hours = hours;
@@ -56,6 +60,10 @@ class OvertimeRequestEntity {
 
     UUID getEmployeeId() {
         return employeeId;
+    }
+
+    UUID organizationId() {
+        return organizationId;
     }
 
     void approve() {

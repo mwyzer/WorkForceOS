@@ -14,6 +14,9 @@ class RiskRecommendationEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "assessment_id", nullable = false)
     private UUID assessmentId;
 
@@ -35,8 +38,9 @@ class RiskRecommendationEntity {
     protected RiskRecommendationEntity() {
     }
 
-    RiskRecommendationEntity(UUID id, UUID assessmentId, RiskRecommendation recommendation) {
+    RiskRecommendationEntity(UUID id, UUID organizationId, UUID assessmentId, RiskRecommendation recommendation) {
         this.id = id;
+        this.organizationId = organizationId;
         this.assessmentId = assessmentId;
         this.riskType = recommendation.riskType();
         this.title = recommendation.title();
@@ -47,6 +51,10 @@ class RiskRecommendationEntity {
 
     UUID assessmentId() {
         return assessmentId;
+    }
+
+    UUID organizationId() {
+        return organizationId;
     }
 
     RiskRecommendation toRecord() {

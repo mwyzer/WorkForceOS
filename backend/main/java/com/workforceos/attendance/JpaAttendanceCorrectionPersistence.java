@@ -22,6 +22,9 @@ class AttendanceCorrectionEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "employee_id", nullable = false)
     private UUID employeeId;
 
@@ -44,6 +47,7 @@ class AttendanceCorrectionEntity {
 
     AttendanceCorrectionEntity(AttendanceCorrection correction) {
         this.id = correction.id();
+        this.organizationId = correction.organizationId();
         this.employeeId = correction.employeeId();
         this.attendanceId = correction.attendanceId();
         this.type = correction.type();
@@ -52,7 +56,7 @@ class AttendanceCorrectionEntity {
     }
 
     AttendanceCorrection toRecord() {
-        return new AttendanceCorrection(id, employeeId, attendanceId, type, details, status);
+        return new AttendanceCorrection(id, organizationId, employeeId, attendanceId, type, details, status);
     }
 }
 

@@ -19,6 +19,7 @@ import com.workforceos.schedule.RosterAssignment;
 import com.workforceos.schedule.RosterStatus;
 import com.workforceos.schedule.ScheduleEngine;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 
 @Service
 public class AttendanceEngine {
@@ -46,12 +47,17 @@ public class AttendanceEngine {
         if (assignment == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee is not eligible to clock in at the specified time");
         }
-        if (sessionStore.findActiveByEmployeeId(request.employeeId()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already has an active attendance session");
+        UUID tenantId = TenantScope.require();
+        if (sessionStore.findActiveByEmployeeId(request.employeeId())
+                .map(session -> session.organizationId() != null && session.organizationId().equals(tenantId))
+                .orElse(false)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Employee already has an active attendance session");
         }
 
         AttendanceSession session = new AttendanceSession(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.employeeId(),
                 assignment.rosterId(),
                 assignment.shiftTemplateId(),
@@ -61,7 +67,8 @@ public class AttendanceEngine {
 
         sessionStore.save(session);
 
-        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_IN, null, "AttendanceSession",
+        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_IN, session.organizationId(),
+                "AttendanceSession",
                 session.id(), currentUser.username(),
                 Payloads.json(Map.of(
                         "employeeId", session.employeeId().toString(),
@@ -78,9 +85,11 @@ public class AttendanceEngine {
         AttendanceSession activeSession = sessionStore.findActiveByEmployeeId(request.employeeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "Employee does not have an active attendance session"));
+        TenantScope.assertAccess(activeSession.organizationId());
 
         AttendanceSession closed = new AttendanceSession(
                 activeSession.id(),
+                activeSession.organizationId(),
                 activeSession.employeeId(),
                 activeSession.rosterId(),
                 activeSession.shiftTemplateId(),
@@ -90,7 +99,8 @@ public class AttendanceEngine {
 
         sessionStore.save(closed);
 
-        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_OUT, null, "AttendanceSession",
+        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_CLOCKED_OUT, closed.organizationId(),
+                "AttendanceSession",
                 closed.id(), currentUser.username(),
                 Payloads.json(Map.of(
                         "employeeId", closed.employeeId().toString(),
@@ -105,11 +115,17 @@ public class AttendanceEngine {
         if (employeeId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee ID is required");
         }
-        return sessionStore.findByEmployeeId(employeeId);
+        UUID tenantId = TenantScope.require();
+        return sessionStore.findByEmployeeId(employeeId).stream()
+                .filter(session -> session.organizationId() != null && session.organizationId().equals(tenantId))
+                .toList();
     }
 
     public List<AttendanceSession> findAllSessions() {
-        return sessionStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return sessionStore.findAll().stream()
+                .filter(session -> session.organizationId() != null && session.organizationId().equals(tenantId))
+                .toList();
     }
 
     public AttendanceCalculation calculate(AttendanceSession session) {

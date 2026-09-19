@@ -9,7 +9,7 @@
 **Database:** PostgreSQL
 **Date:** August 2026
 
-> **Implementation status:** the P0 core (auth, workforce, scheduling, attendance, leave/overtime approvals, handover, audit, reports) is implemented, with shift swap, attendance correction, notifications, Redis caching, the transactional PostgreSQL outbox/event bus with optional Kafka relay, observability, the workforce risk intelligence pipeline, advanced reports and dashboards, API rate limiting, an AI workforce assistant, predictive absenteeism analytics, demand forecasting, advisory auto-scheduling, and a config-gated external integration framework already delivered. PostgreSQL persists the workforce/request core, risk data, outbox, and notifications via Flyway; in-memory stores are retained only for the test profile. Real notification delivery (external providers) and concrete vendor integration rollouts remain on the roadmap and require business approval — see [ROADMAP.md](ROADMAP.md).
+> **Implementation status:** the P0 core (auth, workforce, scheduling, attendance, leave/overtime approvals, handover, audit, reports) is implemented, with shift swap, attendance correction, notifications, Redis caching, the transactional PostgreSQL outbox/event bus with optional Kafka relay, observability, the workforce risk intelligence pipeline, advanced reports and dashboards, API rate limiting, an AI workforce assistant, predictive absenteeism analytics, demand forecasting, advisory auto-scheduling, and a config-gated external integration framework already delivered. Multi-tenant organization administration — `ADMIN`-gated organization CRUD, per-tenant account provisioning, and service-layer tenant isolation across every tenant-owned domain — is also delivered, alongside Playwright UI end-to-end coverage for the Angular app. PostgreSQL persists the workforce/request core, risk data, outbox, and notifications via Flyway; in-memory stores are retained only for the test profile. Real notification delivery (external providers), concrete vendor integration rollouts, and the remaining commercial SaaS packaging remain on the roadmap and require business approval — see [ROADMAP.md](ROADMAP.md) and [PROGRESS.md](PROGRESS.md).
 
 ---
 
@@ -178,6 +178,14 @@ Protected endpoints must require valid authentication.
 ### FR-AUTH-004
 
 Users must only access resources permitted by their role.
+
+### FR-AUTH-005
+
+System administrators can provision user accounts scoped to a specific organization; a provisioned account authenticates against that organization only.
+
+### FR-AUTH-006
+
+All tenant-owned reads and writes must be scoped to the caller's organization; access to resources owned by another organization must return `404` without disclosing their existence.
 
 ---
 
@@ -1045,6 +1053,13 @@ A feature is considered complete when:
 * [ ] Handover can be submitted.
 * [ ] Receiving shift can acknowledge.
 * [ ] Handover history is preserved.
+
+## Organization and Tenant Isolation
+
+* [ ] ADMIN can create and manage organizations.
+* [ ] ADMIN can provision accounts scoped to an organization.
+* [ ] Provisioned accounts authenticate against their own organization only.
+* [ ] Cross-tenant resource access returns 404.
 
 ---
 

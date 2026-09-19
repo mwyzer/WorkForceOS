@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -22,7 +23,10 @@ public class AuditLogService {
     }
 
     public List<AuditLog> findAll() {
-        return auditLogStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return auditLogStore.findAll().stream()
+                .filter(auditLog -> auditLog.organizationId() != null && auditLog.organizationId().equals(tenantId))
+                .toList();
     }
 
     @Transactional
@@ -31,6 +35,7 @@ public class AuditLogService {
 
         AuditLog auditLog = new AuditLog(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.actor().trim(),
                 request.action().trim().toUpperCase(Locale.ROOT),
                 request.resource().trim(),
@@ -43,6 +48,10 @@ public class AuditLogService {
 
     public AuditLog findById(UUID id) {
         return auditLogStore.findById(id)
+                .map(auditLog -> {
+                    TenantScope.assertAccess(auditLog.organizationId());
+                    return auditLog;
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audit log not found"));
     }
 

@@ -17,6 +17,7 @@ import com.workforceos.event.EventPublisher;
 import com.workforceos.event.EventTypes;
 import com.workforceos.event.Payloads;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 import com.workforceos.shared.ValidationUtils;
 
 @Service
@@ -35,9 +36,14 @@ public class LeaveRequestService {
         this.currentUser = currentUser;
     }
 
-    @Cacheable("leaveRequests")
+    @Cacheable(value = "leaveRequests",
+            key = "T(com.workforceos.organization.TenantContext).require().toString()")
     public List<LeaveRequest> findAll() {
-        return leaveRequestRepository.findAll().stream().map(LeaveRequestEntity::toRecord).toList();
+        UUID tenantId = TenantScope.require();
+        return leaveRequestRepository.findAll().stream()
+                .filter(request -> request.organizationId() != null && request.organizationId().equals(tenantId))
+                .map(LeaveRequestEntity::toRecord)
+                .toList();
     }
 
     @CacheEvict(value = { "leaveRequests", "leave-request-report" }, allEntries = true)
@@ -46,6 +52,7 @@ public class LeaveRequestService {
 
         LeaveRequestEntity leaveRequest = new LeaveRequestEntity(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.employeeId(),
                 request.startDate(),
                 request.endDate(),
@@ -61,6 +68,7 @@ public class LeaveRequestService {
     public LeaveRequest approve(UUID id) {
         LeaveRequestEntity leaveRequest = leaveRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));
+        TenantScope.assertAccess(leaveRequest.organizationId());
         if (leaveRequest.getStatus() != LeaveRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING leave requests can be approved");
         }
@@ -68,7 +76,8 @@ public class LeaveRequestService {
         leaveRequest.approve();
         leaveRequestRepository.save(leaveRequest);
         LeaveRequest approved = leaveRequest.toRecord();
-        eventPublisher.publish(DomainEvents.of(EventTypes.LEAVE_APPROVED, null, "LeaveRequest", approved.id(),
+        eventPublisher.publish(DomainEvents.of(EventTypes.LEAVE_APPROVED, TenantScope.require(), "LeaveRequest",
+                approved.id(),
                 currentUser.username(),
                 Payloads.json(java.util.Map.of(
                         "employeeId", approved.employeeId().toString(),
@@ -78,9 +87,10 @@ public class LeaveRequestService {
     }
 
     public LeaveRequest findById(UUID id) {
-        return leaveRequestRepository.findById(id)
-                .map(LeaveRequestEntity::toRecord)
+        LeaveRequestEntity leaveRequest = leaveRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));
+        TenantScope.assertAccess(leaveRequest.organizationId());
+        return leaveRequest.toRecord();
     }
 
     private void validateRequest(LeaveRequestRequest request) {

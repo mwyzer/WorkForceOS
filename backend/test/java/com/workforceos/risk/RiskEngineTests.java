@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +50,7 @@ class RiskEngineTests {
     @Test
     void skipsCoverageShortfallWhenApprovedSwapCoversShift() {
         Instant start = Instant.now().plusSeconds(86_400);
-        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        LocalDate tomorrow = start.atZone(ZoneOffset.UTC).toLocalDate();
         WorkforceRiskData data = new WorkforceRiskData(
                 Instant.now(),
                 staff(1),

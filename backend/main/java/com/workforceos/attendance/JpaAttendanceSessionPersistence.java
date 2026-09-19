@@ -21,6 +21,9 @@ class AttendanceSessionEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "employee_id", nullable = false)
     private UUID employeeId;
 
@@ -44,6 +47,7 @@ class AttendanceSessionEntity {
 
     AttendanceSessionEntity(AttendanceSession session) {
         this.id = session.id();
+        this.organizationId = session.organizationId();
         this.employeeId = session.employeeId();
         this.rosterId = session.rosterId();
         this.shiftTemplateId = session.shiftTemplateId();
@@ -53,7 +57,8 @@ class AttendanceSessionEntity {
     }
 
     AttendanceSession toRecord() {
-        return new AttendanceSession(id, employeeId, rosterId, shiftTemplateId, clockInAt, clockOutAt, active);
+        return new AttendanceSession(id, organizationId, employeeId, rosterId, shiftTemplateId, clockInAt, clockOutAt,
+                active);
     }
 }
 

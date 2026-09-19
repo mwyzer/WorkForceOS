@@ -13,6 +13,7 @@ import com.workforceos.event.EventPublisher;
 import com.workforceos.event.EventTypes;
 import com.workforceos.event.Payloads;
 import com.workforceos.shared.CurrentUser;
+import com.workforceos.shared.TenantScope;
 
 @Service
 public class HandoverService {
@@ -28,7 +29,10 @@ public class HandoverService {
     }
 
     public List<Handover> findAll() {
-        return handoverStore.findAll();
+        UUID tenantId = TenantScope.require();
+        return handoverStore.findAll().stream()
+                .filter(handover -> handover.organizationId() != null && handover.organizationId().equals(tenantId))
+                .toList();
     }
 
     @Transactional
@@ -37,6 +41,7 @@ public class HandoverService {
 
         Handover handover = new Handover(
                 UUID.randomUUID(),
+                TenantScope.require(),
                 request.employeeId(),
                 request.items(),
                 HandoverStatus.DRAFT);
@@ -52,12 +57,14 @@ public class HandoverService {
         }
         Handover submitted = new Handover(
                 handover.id(),
+                handover.organizationId(),
                 handover.employeeId(),
                 handover.items(),
                 HandoverStatus.SUBMITTED);
         handoverStore.save(submitted);
 
-        eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_SUBMITTED, null, "Handover", submitted.id(),
+        eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_SUBMITTED, submitted.organizationId(), "Handover",
+                submitted.id(),
                 currentUser.username(),
                 Payloads.json(java.util.Map.of(
                         "employeeId", submitted.employeeId().toString(),
@@ -73,12 +80,14 @@ public class HandoverService {
         }
         Handover acknowledged = new Handover(
                 handover.id(),
+                handover.organizationId(),
                 handover.employeeId(),
                 handover.items(),
                 HandoverStatus.ACKNOWLEDGED);
         handoverStore.save(acknowledged);
 
-        eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_ACKNOWLEDGED, null, "Handover", acknowledged.id(),
+        eventPublisher.publish(DomainEvents.of(EventTypes.HANDOVER_ACKNOWLEDGED, acknowledged.organizationId(),
+                "Handover", acknowledged.id(),
                 currentUser.username(),
                 Payloads.json(java.util.Map.of(
                         "employeeId", acknowledged.employeeId().toString()))));
@@ -87,6 +96,10 @@ public class HandoverService {
 
     public Handover findById(UUID id) {
         return handoverStore.findById(id)
+                .map(handover -> {
+                    TenantScope.assertAccess(handover.organizationId());
+                    return handover;
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Handover not found"));
     }
 

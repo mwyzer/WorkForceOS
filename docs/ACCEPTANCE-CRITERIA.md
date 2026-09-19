@@ -1,6 +1,6 @@
 # WorkforceOS Acceptance Criteria
 
-**Status:** Draft MVP release gate | **Implementation:** P0 core, workflows, risk intelligence, and observability are implemented with automated coverage; PostgreSQL persistence for all domains is in progress
+**Status:** Draft MVP release gate | **Implementation:** P0 core, workflows, risk intelligence, observability, multi-tenant organization administration with service-layer tenant isolation across every tenant-owned domain, and PostgreSQL persistence for all domains are implemented with automated coverage
 
 Each criterion is accepted only when the behavior, authorization, persistence, audit, and failure path are verified by automated tests or approved system evidence.
 
@@ -13,6 +13,8 @@ Each criterion is accepted only when the behavior, authorization, persistence, a
 - Event bus: outbox recording, handler deduplication, retry backoff, transactional PostgreSQL persistence, and Kafka relay with backoff and idempotent relay markers (`EventPublisherTests`, `EventArchitectureTests`, `KafkaRelayerTests`, `KafkaRelayIntegrationTests`, `ObservabilityTests`).
 - Notifications: domain events project into per-recipient notifications with per-channel delivery adapters, status transitions (`PENDING`/`SENT`/`DELIVERED`/`FAILED`/`READ`), attempt tracking, and retry (`NotificationDeliveryServiceTests`, `NotificationProjectionIntegrationTests`, `NotificationControllerTests`).
 - PostgreSQL persistence: operational core, risk, and outbox entities validate against Flyway migrations and round-trip through the JPA stores (`PersistenceIntegrationTests`).
+- Tenant isolation: `TenantScope` (`require`/`force`/`assertAccess`) scopes every service-layer read and write to the caller's organization; cross-tenant access returns `404`; report/analytics/dashboard caches are tenant-keyed; background projectors derive the tenant from the event's `organization_id` (`TenantIsolationTests`, tenant-aware caching tests).
+- Organization administration: `ADMIN`-only organization CRUD, per-tenant account provisioning, and caller-tenant resolution via `GET /organizations/current`; a provisioned account authenticates against its own organization only (`OrganizationAdminTests`, `OrganizationControllerTests`).
 - Error contract and request correlation: `ApiError` with `traceId`/`requestId`; response headers `X-Request-Id` and `traceparent` (`ObservabilityTests`).
 
 ## Authentication and Authorization
@@ -87,6 +89,15 @@ Each criterion is accepted only when the behavior, authorization, persistence, a
 - Outbound integrations implement a vendor-neutral `OutboundIntegration` port and are discoverable with their enabled state via `GET /api/v1/integrations`.
 - Reference adapters (payroll CSV export, HR webhook) are disabled by default and report `SKIPPED` when unconfigured, so the application boots without provider credentials.
 - Inbound biometric/mobile clock events are accepted only when enabled, map to attendance commands, and return a per-event outcome (never failing the batch), with optional circular geofence rejection.
+
+## Multi-Tenant Isolation and Organization Administration
+
+- Organizations can be created, listed, read, and updated by `ADMIN` only; any other role receives `403`.
+- `POST /admin/accounts` provisions a user account owned by the given organization; missing required fields return `400` and duplicate usernames return `409`.
+- A provisioned account authenticates against its own organization, and `GET /organizations/current` resolves its tenant.
+- Tenant-owned reads and writes are scoped to the caller's organization; access to resources owned by another organization returns `404` without disclosing existence.
+- Cache keys for report, analytics, and dashboard aggregation results are tenant-prefixed so tenants cannot poison each other's results.
+- Background risk analysis and notification projection write into the tenant of the triggering event, even on outbox replay.
 
 ## Release Evidence
 

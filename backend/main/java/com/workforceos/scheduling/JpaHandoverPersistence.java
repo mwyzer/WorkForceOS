@@ -26,6 +26,9 @@ class HandoverEntity {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "employee_id", nullable = false)
     private UUID employeeId;
 
@@ -41,13 +44,14 @@ class HandoverEntity {
 
     HandoverEntity(Handover handover, String itemsJson) {
         this.id = handover.id();
+        this.organizationId = handover.organizationId();
         this.employeeId = handover.employeeId();
         this.status = handover.status();
         this.items = itemsJson;
     }
 
     Handover toRecord() {
-        return new Handover(id, employeeId, HandoverItemJson.toItems(items), status);
+        return new Handover(id, organizationId, employeeId, HandoverItemJson.toItems(items), status);
     }
 }
 

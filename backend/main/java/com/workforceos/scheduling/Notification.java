@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record Notification(
         UUID id,
+        UUID organizationId,
         UUID recipientId,
         NotificationType type,
         String title,
@@ -17,17 +18,17 @@ public record Notification(
         String lastError) {
 
     Notification delivered() {
-        return new Notification(id, recipientId, type, title, body, channel,
+        return new Notification(id, organizationId, recipientId, type, title, body, channel,
                 NotificationStatus.DELIVERED, createdAt, attemptCount, nextAttemptAt, lastError);
     }
 
     Notification sent() {
-        return new Notification(id, recipientId, type, title, body, channel,
+        return new Notification(id, organizationId, recipientId, type, title, body, channel,
                 NotificationStatus.SENT, createdAt, attemptCount, nextAttemptAt, lastError);
     }
 
     Notification failed(String error, Instant nextAttempt) {
-        return new Notification(id, recipientId, type, title, body, channel,
+        return new Notification(id, organizationId, recipientId, type, title, body, channel,
                 NotificationStatus.FAILED, createdAt, attemptCount + 1, nextAttempt, error);
     }
 }

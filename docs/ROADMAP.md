@@ -41,6 +41,20 @@ Dates are intentionally omitted until implementation capacity, dependencies, and
 - [x] Automated scheduling and demand forecasting (`GET /api/v1/rosters/{id}/auto-schedule` returns an advisory plan proposing eligible, non-conflicting, non-leave staff to cover understaffed shift slots; demand forecasting feeds target headcount).
 - [x] External HR, payroll, mobile, geolocation, or biometric integrations as approved (vendor-neutral `OutboundIntegration` port + `IntegrationRegistry` with reference `payroll-csv` and `webhook` adapters, plus an inbound biometric clock-event adapter with optional geofence validation; all config-gated and disabled by default).
 
+## Phase 4: Commercial SaaS Rollout
+
+- [x] Multi-tenant isolation enforcement for org-mapped domains (`departments`, `shift_templates`, `rosters`, `user_accounts`) via `TenantScope` (`require`/`force`/`assertAccess`) at the service layer, with cross-tenant access returning 404; see `DATABASE-DESIGN.md` §4/§9.
+- [x] Organization administration: `ADMIN`-gated organization CRUD (`GET/POST /api/v1/organizations`, `GET/PATCH /api/v1/organizations/{id}`), `GET /api/v1/organizations/current`, and admin account provisioning (`POST /api/v1/admin/accounts`).
+- [x] Tenant-aware caching: department caches keyed by tenant; user-account lookups no longer cache null results (evict-on-provision), so newly provisioned accounts authenticate immediately.
+- [x] Background-job tenant seam: `RiskAnalysisScheduler` runs each analysis inside a tenant context; other scheduled jobs remain explicitly global.
+- [x] Isolation test coverage: `TenantIsolationTests` (writes forced to tenant, departments/rosters/shifts invisible across tenants) and `OrganizationAdminTests` (create/list orgs, non-admin 403, provisioned account resolves to its own tenant).
+- [x] Extend `organization_id` to the remaining JPA entities (employees, teams, leave/overtime, attendance, corrections, approvals, handovers, notifications, audit, shift swaps, risk) and scope their service layers.
+- [x] Tenant-aware caching for report/analytics/dashboard aggregation results: `ReportService`, `DashboardService`, `DemandForecastService`, and `AbsenteeismAnalyticsService` cache keys are tenant-prefixed, preventing cross-tenant cache poisoning.
+- [x] Tenant-context event projectors: `RiskAnalysisScheduler` and `NotificationProjector` derive the tenant from the triggering event's `organization_id` so outbox replay writes land in the correct tenant.
+- [ ] Self-service tenant onboarding (signup flow, org creation, admin provisioning) on top of the admin API.
+- [ ] Commercial packaging: plan/catalog definitions, billing, seat entitlements, and license enforcement.
+- [ ] Frontend tenant admin console and deployment hardening (PostgreSQL RLS, per-tenant connection or schema-row partitioning decisions).
+
 ## Prioritization Principles
 
 1. Protect attendance correctness and authorization before adding convenience features.

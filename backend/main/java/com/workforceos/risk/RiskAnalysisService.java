@@ -8,12 +8,15 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.workforceos.event.DomainEvents;
 import com.workforceos.event.EventPublisher;
 import com.workforceos.event.EventTypes;
 import com.workforceos.event.Payloads;
+import com.workforceos.shared.TenantScope;
 
 @Service
 public class RiskAnalysisService {
@@ -56,12 +59,14 @@ public class RiskAnalysisService {
     }
 
     public WorkforceRiskSummary summary() {
+        UUID tenantId = TenantScope.require();
         WorkforceRiskData data = extractor.extract();
-        List<RiskAssessment> stored = assessmentRepository.findAllByOrderByCreatedAtDesc().stream()
+        List<RiskAssessment> stored = assessmentRepository.findAllByOrganizationIdOrderByCreatedAtDesc(tenantId)
+                .stream()
                 .map(RiskAssessmentEntity::toRecord)
                 .toList();
         RiskImpact impact = impactCalculator.compute(data, stored);
-        long openAlerts = alertRepository.countByStatus(RiskAlertStatus.OPEN);
+        long openAlerts = alertRepository.countByOrganizationIdAndStatus(tenantId, RiskAlertStatus.OPEN);
         Map<RiskType, Long> byType = new LinkedHashMap<>();
         for (RiskType type : RiskType.values()) {
             long count = stored.stream().filter(assessment -> assessment.type() == type).count();
@@ -87,20 +92,25 @@ public class RiskAnalysisService {
     }
 
     public List<RiskAssessment> assessments() {
-        return assessmentRepository.findAllByOrderByCreatedAtDesc().stream()
+        return assessmentRepository.findAllByOrganizationIdOrderByCreatedAtDesc(TenantScope.require()).stream()
                 .map(RiskAssessmentEntity::toRecord)
                 .toList();
     }
 
     public List<RiskRecommendation> recommendations(UUID assessmentId) {
+        RiskAssessmentEntity assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Risk assessment not found"));
+        TenantScope.assertAccess(assessment.organizationId());
         return recommendationRepository.findAllByAssessmentId(assessmentId).stream()
                 .map(RiskRecommendationEntity::toRecord)
                 .toList();
     }
 
     public List<RiskTrendPoint> trend() {
+        UUID tenantId = TenantScope.require();
         Map<LocalDate, long[]> byDay = new TreeMap<>();
-        for (RiskAssessmentEntity entity : assessmentRepository.findAllByOrderByCreatedAtDesc()) {
+        for (RiskAssessmentEntity entity : assessmentRepository
+                .findAllByOrganizationIdOrderByCreatedAtDesc(tenantId)) {
             LocalDate day = entity.createdAt().atZone(ZoneOffset.UTC).toLocalDate();
             long[] counts = byDay.computeIfAbsent(day, ignored -> new long[4]);
             counts[0]++;
@@ -121,37 +131,39 @@ public class RiskAnalysisService {
     }
 
     private void persist(List<RiskAssessment> fresh, List<RiskRecommendation> adviceRecommendations) {
+        UUID tenantId = TenantScope.require();
         for (RiskAssessment assessment : fresh) {
-            String key = dedupeKey(assessment);
+            String key = dedupeKey(tenantId, assessment);
             if (assessmentRepository.findByDedupeKey(key).isPresent()) {
                 continue;
             }
-            RiskAssessmentEntity entity = new RiskAssessmentEntity(assessment, key);
+            RiskAssessmentEntity entity = new RiskAssessmentEntity(tenantId, assessment, key);
             assessmentRepository.save(entity);
-            saveRecommendations(entity, assessment, adviceRecommendations);
-            publishAssessmentEvents(assessment);
+            saveRecommendations(entity, tenantId, assessment, adviceRecommendations);
+            publishAssessmentEvents(assessment, tenantId);
         }
     }
 
-    private void saveRecommendations(RiskAssessmentEntity entity, RiskAssessment assessment,
+    private void saveRecommendations(RiskAssessmentEntity entity, UUID tenantId, RiskAssessment assessment,
             List<RiskRecommendation> adviceRecommendations) {
         for (RiskRecommendation recommendation : adviceRecommendations) {
             if (recommendation.riskType() == null || !recommendation.riskType().equals(assessment.type().name())) {
                 continue;
             }
-            recommendationRepository.save(new RiskRecommendationEntity(UUID.randomUUID(), entity.id(), recommendation));
+            recommendationRepository
+                    .save(new RiskRecommendationEntity(UUID.randomUUID(), tenantId, entity.id(), recommendation));
         }
     }
 
-    private void publishAssessmentEvents(RiskAssessment assessment) {
+    private void publishAssessmentEvents(RiskAssessment assessment, UUID tenantId) {
         Map<String, String> payload = java.util.Map.of(
                 "assessmentId", assessment.id().toString(),
                 "severity", assessment.severity().name(),
                 "summary", assessment.summary());
-        eventPublisher.publish(DomainEvents.of(EventTypes.COVERAGE_RISK_DETECTED, null, "RiskAssessment",
+        eventPublisher.publish(DomainEvents.of(EventTypes.COVERAGE_RISK_DETECTED, tenantId, "RiskAssessment",
                 assessment.id(), null, Payloads.json(payload)));
         if (assessment.severity() == RiskSeverity.HIGH) {
-            eventPublisher.publish(DomainEvents.of(EventTypes.WORKFORCE_RISK_ELEVATED, null, "RiskAssessment",
+            eventPublisher.publish(DomainEvents.of(EventTypes.WORKFORCE_RISK_ELEVATED, tenantId, "RiskAssessment",
                     assessment.id(), null, Payloads.json(payload)));
         }
     }
@@ -172,7 +184,7 @@ public class RiskAnalysisService {
                 severityCount(assessments, RiskSeverity.HIGH),
                 severityCount(assessments, RiskSeverity.MEDIUM),
                 severityCount(assessments, RiskSeverity.LOW),
-                alertRepository.countByStatus(RiskAlertStatus.OPEN),
+                alertRepository.countByOrganizationIdAndStatus(TenantScope.require(), RiskAlertStatus.OPEN),
                 heuristic.analyze(structuredRisk(data, assessments, impact)).explanation(),
                 advisor.currentMode(),
                 byType,
@@ -196,7 +208,8 @@ public class RiskAnalysisService {
         return assessments.stream().filter(assessment -> assessment.severity() == severity).count();
     }
 
-    private String dedupeKey(RiskAssessment assessment) {
-        return assessment.type().name() + ":" + assessment.entityId() + ":" + assessment.windowStart().toEpochMilli();
+    private String dedupeKey(UUID tenantId, RiskAssessment assessment) {
+        return tenantId + ":" + assessment.type().name() + ":" + assessment.entityId() + ":"
+                + assessment.windowStart().toEpochMilli();
     }
 }

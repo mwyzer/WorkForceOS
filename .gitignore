@@ -7,3 +7,7 @@ target/
 .settings/
 .env
 *.log
+screenshot/
+frontend/e2e/.auth/
+frontend/test-results/
+frontend/playwright-report/

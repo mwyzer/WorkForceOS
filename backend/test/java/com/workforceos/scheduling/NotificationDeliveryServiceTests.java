@@ -14,7 +14,8 @@ import org.junit.jupiter.api.Test;
 class NotificationDeliveryServiceTests {
 
     private static Notification pending(NotificationChannel channel) {
-        return new Notification(UUID.randomUUID(), UUID.randomUUID(), NotificationType.LEAVE_APPROVED,
+        return new Notification(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                NotificationType.LEAVE_APPROVED,
                 "Leave approved", "Your leave was approved", channel, NotificationStatus.PENDING, Instant.now(), 0,
                 Instant.now().minusSeconds(10), null);
     }
@@ -93,7 +94,7 @@ class NotificationDeliveryServiceTests {
                 List.of(new InAppNotificationAdapter(), new LoggingNotificationAdapter()));
 
         Notification due = pending(NotificationChannel.IN_APP);
-        Notification future = new Notification(UUID.randomUUID(), UUID.randomUUID(),
+        Notification future = new Notification(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 NotificationType.ROSTER_PUBLISHED, "Roster", "Roster available", NotificationChannel.EMAIL,
                 NotificationStatus.PENDING, Instant.now(), 0, Instant.now().plusSeconds(120), null);
         store.save(due);
