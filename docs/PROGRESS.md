@@ -1,6 +1,6 @@
 # WorkforceOS Development Progress
 
-**Last updated:** September 2026 | **Source of truth:** working tree on `main` (see `git log` and `git status`)
+**Last updated:** 2026-09-28 | **Source of truth:** working tree on `main` (see `git log` and `git status`)
 
 This file is a living tracker for what is built, where each capability runs (in-memory vs PostgreSQL), how it is verified, and what is still open. It complements the phase checklist in [ROADMAP.md](ROADMAP.md): ROADMAP says *whether* a phase is done, PROGRESS records *what exactly* ships and what remains.
 
@@ -15,6 +15,12 @@ This file is a living tracker for what is built, where each capability runs (in-
 | Phase 4 — Commercial SaaS rollout | 🚧 In progress (tenant isolation + org administration delivered; onboarding, packaging, RLS hardening pending) |
 | Production release | Not started (release evidence and acceptance gate pending) |
 
+## 1a. Runtime
+
+Backend runtime is Java 25 (upgraded from 21 on 2026-09-28), Spring Boot parent `3.5.12` (bumped from `3.5.5` to remediate two high-severity Actuator CVEs). Both changes are reflected in `pom.xml` and the backend `Dockerfile` (`maven:3.9-eclipse-temurin-25` build stage, `eclipse-temurin:25-jre` runtime). Full backend suite re-verified on JDK 25: 149 tests, 0 failures — identical to the JDK 21 baseline.
+
+**Local verification caveat (2026-09-29):** this dev machine has only JDK 21 installed; `mvn test` fails locally (`release version 25 not supported`) against the current `pom.xml`. Installing a JDK 25 toolchain locally was attempted and blocked by disk space (C: drive had ~310 MB free). The "149 tests, 0 failures on JDK 25" result above was therefore not re-confirmed from this machine — it should be re-verified via the Docker build (`maven:3.9-eclipse-temurin-25`) or CI before being relied on, and this caveat should be removed once that verification runs.
+
 ## 2. Delivery Ledger by Capability
 
 Legend: ✅ delivered · 🟡 partially delivered · ⬜ not started. Persistence column refers to the production (`default`) profile; the `test` profile uses in-memory stores for isolation.
@@ -27,8 +33,8 @@ Legend: ✅ delivered · 🟡 partially delivered · ⬜ not started. Persistenc
 | Tenant isolation (service-layer `TenantScope`) | ✅ | ✅ all tenant-owned tables carry `organization_id` | ✅ enforced across endpoints | n/a | ✅ `TenantIsolationTests` | ✅ |
 | Workforce (departments, teams, employees) | ✅ | ✅ PostgreSQL | ✅ | ✅ employees page | ✅ | ✅ |
 | Shifts, rosters, conflicts, publish | ✅ | ✅ PostgreSQL | ✅ | ⬜ | ✅ | ✅ |
-| Attendance (clock in/out, breaks, calculation) | ✅ (breaks via engine) | ✅ PostgreSQL | 🟡 break events not exposed | ⬜ | ✅ | 🟡 |
-| Leave / overtime requests + approval engine | ✅ | ✅ PostgreSQL | ✅ (leave reject endpoint ⬜) | ⬜ | ✅ | 🟡 |
+| Attendance (clock in/out, breaks, calculation) | ✅ | ✅ PostgreSQL | ✅ `/attendance/break-*` exposed | ✅ attendance page | ✅ | ✅ |
+| Leave / overtime requests + approval engine | ✅ | ✅ PostgreSQL | ✅ `/leave-requests/{id}/reject` exposed | ⬜ | ✅ | ✅ |
 | Shift swap + attendance correction | ✅ | ✅ PostgreSQL | ✅ | ⬜ | ✅ | ✅ |
 | Handovers | ✅ | ✅ PostgreSQL | ✅ | ⬜ | ✅ | ✅ |
 | Notifications (projection + delivery adapters) | ✅ | ✅ PostgreSQL | ✅ | ⬜ | ✅ | ✅ |
@@ -39,7 +45,7 @@ Legend: ✅ delivered · 🟡 partially delivered · ⬜ not started. Persistenc
 | Rate limiting | ✅ | n/a | ✅ HTTP 429 + `Retry-After` | n/a | ✅ | ✅ |
 | Observability (correlation, errors, metrics, health) | ✅ | n/a | ✅ | n/a | ✅ | ✅ |
 | Risk intelligence pipeline | ✅ | ✅ PostgreSQL | ✅ | ✅ risk page | ✅ | ✅ |
-| AI workforce assistant + risk LLM providers (OpenAI/Muse/Spark) | ✅ `WorkforceLlmClient` shared OpenAI-compatible client (`com.workforceos.ai`) | n/a | ✅ `/assistant/ask`, `/risk/analyze` | ⬜ | ✅ `WorkforceLlmClientTests` + `AssistantControllerTests` | ✅ provider config-gated |
+| AI workforce assistant + risk LLM providers (OpenAI/Muse/Spark) | ✅ `WorkforceLlmClient` shared OpenAI-compatible client (`com.workforceos.ai`) | n/a | ✅ `/assistant/ask`, `/risk/analyze` | ✅ assistant page | ✅ `WorkforceLlmClientTests` + `AssistantControllerTests` | ✅ provider config-gated |
 | Predictive analytics (absenteeism, forecasting) | ✅ | n/a | ✅ `/analytics/*` | ⬜ | ✅ | ✅ |
 | Advisory auto-scheduling | ✅ | n/a | ✅ `/rosters/{id}/auto-schedule` | ⬜ | ✅ | ✅ |
 | External integrations (payroll CSV, webhook, biometric) | ✅ | n/a | ✅ `/integrations*` | ⬜ | ✅ | ✅ config-gated |
@@ -74,9 +80,8 @@ High priority:
 
 Medium priority:
 
-- Expose break-event recording and leave `reject` via API (the engine/event support exists).
 - Wire Playwright E2E into CI (install chromium in the pipeline, start backend on demand).
-- Publish an OpenAPI document; document pagination/sorting/filtering and rate-limit contract explicitly.
+- Document pagination/sorting/filtering and rate-limit contract explicitly on top of the published OpenAPI document (`/api/v1/openapi.yaml`).
 
 Tracked decisions:
 

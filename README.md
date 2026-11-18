@@ -6,7 +6,7 @@ WorkforceOS is an enterprise REST API platform for organizations with shift-base
 
 ## Implementation Status
 
-The backend (`backend/`) is a Spring Boot 3 / Java 21 modular monolith with the following implemented:
+The backend (`backend/`) is a Spring Boot 3 / Java 25 modular monolith with the following implemented:
 
 - JWT authentication (`/api/v1/auth/login`) and bearer-token security filter
 - Workforce management: employees, departments, teams
@@ -26,7 +26,7 @@ The frontend (`frontend/`) is an Angular 16 project with the login, workforce ov
 
 ### Backend
 
-Prerequisites: Java 21 and Maven 3.9 or later.
+Prerequisites: Java 25 and Maven 3.9 or later.
 
 The development authentication account defaults to `admin` / `admin`. Override it before running with:
 
@@ -140,16 +140,9 @@ Current shift creates handover -> Submit -> Next shift reviews -> Acknowledge
 
 ## Key Business Rules
 
-- An employee must have an active assignment before recording attendance.
-- An employee cannot have multiple active clock-in sessions.
-- Employees cannot be assigned to overlapping shifts.
-- Only authorized users can publish rosters or approve requests.
-- Users cannot approve their own requests.
-- Approved requests require an authorized correction process before modification.
-- Submitted handovers are not editable unless returned to an editable state.
-- Attendance calculations use the employee's assigned shift and support overnight shifts.
-- Critical operations should be idempotent to prevent duplicate records during retries.
-- Approval actions and important operational changes must remain auditable.
+A few headline invariants: an employee cannot have multiple active clock-in sessions or be assigned to overlapping shifts, users cannot approve their own requests, and approved requests/submitted handovers are immutable outside their authorized correction/edit workflows.
+
+The complete, enforced list — with pointers to where each rule lives in code — is maintained in [docs/guardrails.md](docs/guardrails.md).
 
 ## Workforce Risk Intelligence
 
@@ -254,7 +247,7 @@ Errors should use a consistent structure containing a timestamp, HTTP status, ap
 
 The backend is a modular monolith using:
 
-- Java 21
+- Java 25
 - Spring Boot 3
 - Spring Security with JWT
 - In-memory repositories (PostgreSQL persistence is planned, not yet wired up)
@@ -416,6 +409,11 @@ Targets are subject to revision after load testing and implementation decisions.
 
 ## Documentation
 
+Start here: [Master Specification](docs/spec.md) — a one-page summary of scope, architecture, API, and status that links into everything below.
+
+- [Master Specification](docs/spec.md)
+- [Tools & Technology Stack](docs/tools.md)
+- [Guardrails](docs/guardrails.md)
 - [Product Requirements Document](docs/PRD.md)
 - [Business Requirements Document](docs/BRD.md)
 - [Software Requirements Specification](docs/SRS.md)
@@ -431,6 +429,7 @@ Targets are subject to revision after load testing and implementation decisions.
 - [User Stories](docs/USER-STORIES.md)
 - [Acceptance Criteria](docs/ACCEPTANCE-CRITERIA.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Progress Ledger](docs/PROGRESS.md)
 
 ## License
 

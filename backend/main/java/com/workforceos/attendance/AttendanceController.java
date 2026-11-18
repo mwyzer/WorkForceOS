@@ -30,6 +30,16 @@ public class AttendanceController {
         return attendanceEngine.clockOut(request);
     }
 
+    @PostMapping("/break-start")
+    public AttendanceSession breakStart(@RequestBody AttendanceRequest request) {
+        return attendanceEngine.recordBreakStart(request);
+    }
+
+    @PostMapping("/break-end")
+    public AttendanceSession breakEnd(@RequestBody AttendanceRequest request) {
+        return attendanceEngine.recordBreakEnd(request);
+    }
+
     @GetMapping("/me")
     public List<AttendanceSession> findMyAttendance(@RequestParam UUID employeeId) {
         return attendanceEngine.findByEmployee(employeeId);

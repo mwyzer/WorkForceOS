@@ -70,6 +70,10 @@ class LeaveRequestEntity {
         this.status = LeaveRequestStatus.APPROVED;
     }
 
+    void reject() {
+        this.status = LeaveRequestStatus.REJECTED;
+    }
+
     LeaveRequest toRecord() {
         return new LeaveRequest(id, employeeId, startDate, endDate, reason, status);
     }

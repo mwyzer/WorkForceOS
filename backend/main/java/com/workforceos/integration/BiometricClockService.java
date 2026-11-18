@@ -50,6 +50,14 @@ public class BiometricClockService {
                 attendanceEngine.clockOut(request);
                 return new ClockEventResult(reference, true, "Clock-out recorded");
             }
+            if ("BREAK_START".equals(direction)) {
+                attendanceEngine.recordBreakStart(request);
+                return new ClockEventResult(reference, true, "Break start recorded");
+            }
+            if ("BREAK_END".equals(direction)) {
+                attendanceEngine.recordBreakEnd(request);
+                return new ClockEventResult(reference, true, "Break end recorded");
+            }
             return new ClockEventResult(reference, false,
                     "Unsupported clock direction: " + event.direction());
         } catch (ResponseStatusException ex) {
@@ -74,6 +82,8 @@ public class BiometricClockService {
         return switch (direction.trim().toUpperCase(Locale.ROOT)) {
             case "IN", "CLOCK_IN", "CLOCKIN", "CLOCK-IN" -> "IN";
             case "OUT", "CLOCK_OUT", "CLOCKOUT", "CLOCK-OUT" -> "OUT";
+            case "BREAK_START", "BREAK-START", "BREAKSTART" -> "BREAK_START";
+            case "BREAK_END", "BREAK-END", "BREAKEND" -> "BREAK_END";
             default -> "";
         };
     }

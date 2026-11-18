@@ -111,6 +111,46 @@ public class AttendanceEngine {
         return closed;
     }
 
+    @Transactional
+    public AttendanceSession recordBreakStart(AttendanceRequest request) {
+        validateRequest(request);
+
+        AttendanceSession activeSession = sessionStore.findActiveByEmployeeId(request.employeeId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Employee does not have an active attendance session"));
+        TenantScope.assertAccess(activeSession.organizationId());
+
+        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_BREAK_STARTED, activeSession.organizationId(),
+                "AttendanceSession",
+                activeSession.id(), currentUser.username(),
+                Payloads.json(Map.of(
+                        "employeeId", activeSession.employeeId().toString(),
+                        "rosterId", activeSession.rosterId().toString(),
+                        "shiftTemplateId", activeSession.shiftTemplateId().toString(),
+                        "occurredAt", request.occurredAt().toString()))));
+        return activeSession;
+    }
+
+    @Transactional
+    public AttendanceSession recordBreakEnd(AttendanceRequest request) {
+        validateRequest(request);
+
+        AttendanceSession activeSession = sessionStore.findActiveByEmployeeId(request.employeeId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Employee does not have an active attendance session"));
+        TenantScope.assertAccess(activeSession.organizationId());
+
+        eventPublisher.publish(DomainEvents.of(EventTypes.ATTENDANCE_BREAK_ENDED, activeSession.organizationId(),
+                "AttendanceSession",
+                activeSession.id(), currentUser.username(),
+                Payloads.json(Map.of(
+                        "employeeId", activeSession.employeeId().toString(),
+                        "rosterId", activeSession.rosterId().toString(),
+                        "shiftTemplateId", activeSession.shiftTemplateId().toString(),
+                        "occurredAt", request.occurredAt().toString()))));
+        return activeSession;
+    }
+
     public List<AttendanceSession> findByEmployee(UUID employeeId) {
         if (employeeId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee ID is required");

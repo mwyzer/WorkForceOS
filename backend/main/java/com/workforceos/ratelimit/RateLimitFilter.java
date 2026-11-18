@@ -48,7 +48,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return true;
         }
         String path = request.getRequestURI();
-        return path.startsWith("/actuator") || path.equals("/api/v1/health");
+        return path.startsWith("/actuator") || path.equals("/api/v1/health") || path.equals("/api/v1/openapi.yaml");
     }
 
     @Override

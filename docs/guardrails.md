@@ -41,11 +41,11 @@ Rules are phrased as "must" / "must never" on purpose — treat them as a diff r
 - **Audit records are append-only.** Never expose an update or delete path for `audit_logs` — including from admin tooling or data-fix scripts.
 - **Every approval action, roster publish, and handover transition must produce an audit record** (actor, action, resource, resource ID, timestamp). If you add a new state-changing endpoint in these domains, add the audit write in the same change, not as a follow-up.
 
-*Enforced in:* `backend/main/java/com/workforceos/scheduling/AuditLogController.java` and callers. *Full detail:* [SECURITY.md §4](SECURITY.md), README "Key Business Rules".
+*Enforced in:* `backend/main/java/com/workforceos/scheduling/AuditLogController.java` and callers. *Full detail:* [SECURITY.md §4](SECURITY.md).
 
 ## 5. Idempotency & Duplication
 
-- **There is no generic `Idempotency-Key` HTTP header middleware today**, despite the header appearing as an example in [PRD.md §25](PRD.md) — don't assume one exists when reviewing or extending a controller. Idempotency is currently achieved per-domain via dedupe keys (e.g. `risk_assessments.dedupe_key` = `type:entityId:windowStartMillis`, the outbox's event-id uniqueness, biometric clock-event dedupe).
+- **There is no generic `Idempotency-Key` HTTP header middleware today** — don't assume one exists when reviewing or extending a controller. Idempotency is currently achieved per-domain via dedupe keys (e.g. `risk_assessments.dedupe_key` = `type:entityId:windowStartMillis`, the outbox's event-id uniqueness, biometric clock-event dedupe). [PRD.md §25](PRD.md) previously showed this header as if implemented; that section now points here.
 - **If you add a new dedupe key, make it a real unique constraint in the Flyway migration**, not just an application-level check — the risk module's `uq_risk_assessments_dedupe_key` is the pattern to follow.
 - **Repeated risk analysis runs, event redelivery, and notification retries must not create duplicate rows.** Test this explicitly for any new recompute or retry path, not just the happy path.
 

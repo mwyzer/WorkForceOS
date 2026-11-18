@@ -13,6 +13,8 @@ import { RiskDashboardComponent } from './risk/risk-dashboard/risk-dashboard.com
 import { RiskPipelineComponent } from './risk/risk-pipeline/risk-pipeline.component';
 import { RiskChartsComponent } from './risk/risk-charts/risk-charts.component';
 import { RiskAssessmentsComponent } from './risk/risk-assessments/risk-assessments.component';
+import { AssistantComponent } from './assistant/assistant.component';
+import { AttendanceComponent } from './attendance/attendance.component';
 
 @NgModule({
   declarations: [
@@ -20,6 +22,8 @@ import { RiskAssessmentsComponent } from './risk/risk-assessments/risk-assessmen
     LoginComponent,
     HomeComponent,
     EmployeesComponent,
+    AttendanceComponent,
+    AssistantComponent,
     RiskDashboardComponent,
     RiskPipelineComponent,
     RiskChartsComponent,

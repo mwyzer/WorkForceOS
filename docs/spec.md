@@ -48,7 +48,7 @@ Detailed phase checklist: [ROADMAP.md](ROADMAP.md) · capability-by-capability d
 
 ## 4. Architecture
 
-Modular monolith: Java 21, Spring Boot 3, Spring Security with signed bearer tokens, PostgreSQL via JPA + Flyway (`V1`–`V6`), Redis caching, transactional outbox with optional Kafka relay. Modules share one deployable runtime and database while keeping domain ownership and application-service boundaries explicit.
+Modular monolith: Java 25, Spring Boot 3, Spring Security with signed bearer tokens, PostgreSQL via JPA + Flyway (`V1`–`V6`), Redis caching, transactional outbox with optional Kafka relay. Modules share one deployable runtime and database while keeping domain ownership and application-service boundaries explicit.
 
 ```text
 HTTP request -> authentication -> authorization -> controller
@@ -97,7 +97,7 @@ Representative endpoint groups:
 /health
 ```
 
-Collections are paginated (`page`, `size`) and return a standard envelope (`content`, `page`, `size`, `totalElements`, `totalPages`). Errors use a consistent structure: timestamp, HTTP status, application error code, message, request path. Critical write operations accept an idempotency key to make retries safe.
+Collections currently return full, unpaginated lists — pagination parameters and page size are a documented TBD, not yet implemented. Errors use a consistent structure: timestamp, HTTP status, application error code, message, request path, plus `traceId`/`requestId` for correlation. Idempotency on retry-sensitive writes is achieved per-domain via unique dedupe keys (e.g. risk assessment dedupe key), not a generic `Idempotency-Key` header.
 
 Full endpoint reference: [API-SPECIFICATION.md](API-SPECIFICATION.md)
 
@@ -113,7 +113,7 @@ Full event catalog and delivery guarantees: [EVENT-DESIGN.md](EVENT-DESIGN.md)
 - **Availability:** 99.9% monthly target.
 - **Security:** Spring Security, signed bearer tokens, password hashing, RBAC, input validation, secure headers, token-bucket rate limiting (429 + `Retry-After`), append-only audit logging. Details: [SECURITY.md](SECURITY.md)
 - **Reliability:** transactional writes, idempotency on critical commands, bounded event retry, standardized error handling, health checks.
-- **Observability:** Spring Boot Actuator, Micrometer, Prometheus-compatible metrics, structured logs with correlation/request IDs. Details: [OBSERVABILITY.md](OBSERVABILITY.md)
+- **Observability:** Spring Boot Actuator, Micrometer application metrics, structured logs with correlation/request IDs; Prometheus/Grafana scraping is the documented target but no Prometheus registry is wired in yet. Details: [OBSERVABILITY.md](OBSERVABILITY.md)
 - **Multi-tenancy:** every tenant-owned read/write scoped to the caller's organization; cross-tenant access returns `404` without disclosing existence.
 
 Targets are subject to revision after further load testing.
@@ -140,6 +140,8 @@ Authoritative, continuously updated status: [PROGRESS.md](PROGRESS.md)
 
 | Document | Purpose |
 | --- | --- |
+| [tools.md](tools.md) | Tech stack / tooling inventory |
+| [guardrails.md](guardrails.md) | Non-negotiable invariants checklist for code changes |
 | [PRD.md](PRD.md) | Product requirements, full FR catalog, release plan |
 | [BRD.md](BRD.md) | Business requirements and justification |
 | [SRS.md](SRS.md) | Software requirements specification |

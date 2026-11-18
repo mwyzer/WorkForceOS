@@ -83,11 +83,7 @@ Payroll, recruitment, performance management, full HRIS, hardware integrations, 
 
 ## 6. State Models
 
-- Roster: `DRAFT -> PUBLISHED -> COMPLETED`; `DRAFT/PUBLISHED -> CANCELLED`.
-- Request: `PENDING -> APPROVED | REJECTED`; pending requests may be cancelled by policy.
-- Handover: `DRAFT -> SUBMITTED -> ACKNOWLEDGED -> CLOSED`.
-- Attendance: event stream of `CLOCK_IN`, `BREAK_START`, `BREAK_END`, and `CLOCK_OUT`.
-- Risk alert: `OPEN -> RESOLVED`; risk assessment is append-only (new versions for updated windows).
+See [FSD.md §7](FSD.md) for the authoritative state models (roster, request, handover, attendance, risk alert/assessment) — kept in one place to avoid the two documents drifting apart.
 
 ## 7. Traceability
 

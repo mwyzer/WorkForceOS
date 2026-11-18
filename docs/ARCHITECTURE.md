@@ -4,7 +4,7 @@
 
 ## 1. Architectural Direction
 
-WorkforceOS is built as a modular monolith with Java 21, Spring Boot 3, PostgreSQL (via JPA and Flyway), Redis caching, and Spring Security with signed bearer tokens. Modules share one deployable runtime and database while keeping domain ownership, application services, and persistence boundaries explicit.
+WorkforceOS is built as a modular monolith with Java 25, Spring Boot 3, PostgreSQL (via JPA and Flyway), Redis caching, and Spring Security with signed bearer tokens. Modules share one deployable runtime and database while keeping domain ownership, application services, and persistence boundaries explicit.
 
 This balances delivery speed and transactional consistency with a path to later extract high-volume or independently scaled capabilities.
 

@@ -1,0 +1,75 @@
+<div class="assistant">
+  <header class="assistant__bar">
+    <span class="assistant__brand">WorkforceOS</span>
+    <nav class="assistant__nav">
+      <a class="assistant__link" routerLink="/">Overview</a>
+      <a class="assistant__link" routerLink="/employees">Employees</a>
+      <a class="assistant__link" routerLink="/attendance">Attendance</a>
+      <a class="assistant__link" routerLink="/risk">Risk intelligence</a>
+      <span class="assistant__link assistant__link--active">AI Assistant</span>
+    </nav>
+    <button type="button" class="assistant__logout" (click)="logout()">Sign out</button>
+  </header>
+
+  <main class="assistant__content">
+    <div class="chat-container">
+      <div class="chat-header">
+        <h1 class="chat-title">AI Workforce Assistant</h1>
+        <p class="chat-subtitle">Natural language operations, risk analysis, and scheduling advisory</p>
+      </div>
+
+      <div class="chat-messages">
+        <div
+          *ngFor="let msg of messages"
+          class="chat-bubble"
+          [ngClass]="{
+            'chat-bubble--user': msg.sender === 'user',
+            'chat-bubble--assistant': msg.sender === 'assistant'
+          }"
+        >
+          <div class="chat-bubble__meta">
+            <span class="chat-bubble__author">{{ msg.sender === 'user' ? 'You' : 'Assistant' }}</span>
+            <span class="chat-bubble__badge" *ngIf="msg.source && msg.source !== 'system'">{{ msg.source }}</span>
+            <span class="chat-bubble__time">{{ msg.timestamp | date:'shortTime' }}</span>
+          </div>
+          <div class="chat-bubble__text">{{ msg.text }}</div>
+        </div>
+
+        <div class="chat-bubble chat-bubble--assistant chat-bubble--thinking" *ngIf="loading">
+          <div class="chat-bubble__meta">
+            <span class="chat-bubble__author">Assistant</span>
+            <span class="chat-bubble__badge">thinking...</span>
+          </div>
+          <div class="chat-bubble__text">Analyzing workforce data…</div>
+        </div>
+      </div>
+
+      <div class="chat-prompts" *ngIf="messages.length <= 2">
+        <span class="chat-prompts__label">Suggested:</span>
+        <button
+          type="button"
+          class="chat-prompt-pill"
+          *ngFor="let prompt of suggestedPrompts"
+          (click)="usePrompt(prompt)"
+        >
+          {{ prompt }}
+        </button>
+      </div>
+
+      <form class="chat-input-form" (ngSubmit)="send()">
+        <input
+          type="text"
+          class="chat-input"
+          placeholder="Ask a question about workforce, schedules, risk..."
+          [(ngModel)]="question"
+          name="question"
+          [disabled]="loading"
+          autocomplete="off"
+        />
+        <button type="submit" class="chat-send-btn" [disabled]="!question.trim() || loading">
+          Send
+        </button>
+      </form>
+    </div>
+  </main>
+</div>

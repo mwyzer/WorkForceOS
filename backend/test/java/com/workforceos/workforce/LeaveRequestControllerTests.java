@@ -60,6 +60,32 @@ class LeaveRequestControllerTests {
     }
 
     @Test
+    void createsAndRejectsLeaveRequest() throws Exception {
+        UUID employeeId = UUID.randomUUID();
+        String request = """
+                {
+                  "employeeId": "%s",
+                  "startDate": "%s",
+                  "endDate": "%s",
+                  "reason": "Personal time off"
+                }
+                """.formatted(employeeId, LocalDate.now().plusDays(10), LocalDate.now().plusDays(12));
+
+        String location = mockMvc.perform(post("/api/v1/leave-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+
+        mockMvc.perform(post("/api/v1/leave-requests/{id}/reject", location.substring(location.lastIndexOf('/') + 1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"));
+    }
+
+    @Test
     void rejectsInvalidLeaveDateRange() throws Exception {
         String request = """
                 {

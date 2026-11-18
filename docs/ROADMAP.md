@@ -7,7 +7,7 @@ Dates are intentionally omitted until implementation capacity, dependencies, and
 ## Phase 0: Foundation
 
 - [x] Confirm access boundaries and RBAC baseline (default `admin`/`manager` accounts, role enforcement per route).
-- [x] Establish Java 21/Spring Boot 3 project structure with dedicated domain packages.
+- [x] Establish Java 21/Spring Boot 3 project structure with dedicated domain packages (upgraded to Java 25 with Spring Boot 3.5.12 for CVE remediation; see [PROGRESS.md](PROGRESS.md)).
 - [x] Set coding, migration (Flyway), API versioning (`/api/v1`), and conventions.
 - [x] Implement configuration, health checks, error contract, request correlation, and security baseline.
 - [x] Define tenant/organization model and isolation strategy (organizations table, per-table `organization_id` discriminator, `TenantContext` resolution per request; see `DATABASE-DESIGN.md` §9).

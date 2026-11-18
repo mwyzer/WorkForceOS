@@ -1,0 +1,121 @@
+<div class="attendance">
+  <header class="attendance__bar">
+    <span class="attendance__brand">WorkforceOS</span>
+    <nav class="attendance__nav">
+      <a class="attendance__link" routerLink="/">Overview</a>
+      <a class="attendance__link" routerLink="/employees">Employees</a>
+      <span class="attendance__link attendance__link--active">Attendance</span>
+      <a class="attendance__link" routerLink="/risk">Risk intelligence</a>
+      <a class="attendance__link" routerLink="/assistant">AI Assistant</a>
+    </nav>
+    <button type="button" class="attendance__logout" (click)="logout()">Sign out</button>
+  </header>
+
+  <main class="attendance__content">
+    <div class="attendance__heading">
+      <h1 class="attendance__title">Time & Attendance Clock</h1>
+      <div class="employee-picker">
+        <label for="emp-select">Active employee:</label>
+        <select id="emp-select" [(ngModel)]="selectedEmployeeId" (change)="onEmployeeChange()">
+          <option *ngFor="let emp of employees" [value]="emp.id">
+            {{ emp.firstName }} {{ emp.lastName }} ({{ emp.employeeNumber }})
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Clock & Status Card -->
+    <div class="clock-card">
+      <div class="digital-clock">
+        <span class="digital-clock__time">{{ currentTime | date:'HH:mm:ss' }}</span>
+        <span class="digital-clock__date">{{ currentTime | date:'fullDate' }}</span>
+      </div>
+
+      <div class="status-indicator">
+        <span class="status-pill status-pill--active" *ngIf="activeSession && !isOnBreak">Clocked In</span>
+        <span class="status-pill status-pill--break" *ngIf="activeSession && isOnBreak">On Break</span>
+        <span class="status-pill status-pill--idle" *ngIf="!activeSession">Clocked Out</span>
+        <p class="status-subtext" *ngIf="activeSession">
+          Session started at {{ activeSession.clockInAt | date:'shortTime' }}
+        </p>
+      </div>
+
+      <div class="clock-actions">
+        <button
+          type="button"
+          class="btn btn--in"
+          [disabled]="activeSession != null || loading || !selectedEmployeeId"
+          (click)="clockIn()"
+        >
+          Clock In
+        </button>
+
+        <button
+          type="button"
+          class="btn btn--break"
+          *ngIf="!isOnBreak"
+          [disabled]="activeSession == null || loading"
+          (click)="breakStart()"
+        >
+          Start Break
+        </button>
+
+        <button
+          type="button"
+          class="btn btn--break-end"
+          *ngIf="isOnBreak"
+          [disabled]="activeSession == null || loading"
+          (click)="breakEnd()"
+        >
+          End Break
+        </button>
+
+        <button
+          type="button"
+          class="btn btn--out"
+          [disabled]="activeSession == null || loading"
+          (click)="clockOut()"
+        >
+          Clock Out
+        </button>
+      </div>
+
+      <p class="feedback-msg" [ngClass]="{ 'feedback-msg--error': isError }" *ngIf="statusMessage">
+        {{ statusMessage }}
+      </p>
+    </div>
+
+    <!-- History Log Table -->
+    <section class="history-panel">
+      <h2 class="history-panel__title">Attendance History</h2>
+
+      <div class="table-container">
+        <table class="table" *ngIf="history.length > 0; else noHistory">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Clock In</th>
+              <th>Clock Out</th>
+              <th>Session ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of history">
+              <td>
+                <span class="badge" [ngClass]="s.active ? 'badge--active' : 'badge--closed'">
+                  {{ s.active ? 'ACTIVE' : 'COMPLETED' }}
+                </span>
+              </td>
+              <td>{{ s.clockInAt | date:'medium' }}</td>
+              <td>{{ s.clockOutAt ? (s.clockOutAt | date:'medium') : '—' }}</td>
+              <td class="mono-id">{{ s.id }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #noHistory>
+          <p class="empty-text">No attendance records found for this employee.</p>
+        </ng-template>
+      </div>
+    </section>
+  </main>
+</div>

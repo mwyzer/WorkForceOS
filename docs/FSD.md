@@ -4,7 +4,7 @@
 
 ## 1. Purpose
 
-This FSD specifies the functional behavior of WorkforceOS in terms of inputs, processing, outputs, business rules, and state transitions. It complements the [SRS](SRS.md) by describing *how* each required capability behaves, and it aligns with the implemented backend (Spring Boot 3 / Java 21), persisted risk data, and Angular frontend.
+This FSD specifies the functional behavior of WorkforceOS in terms of inputs, processing, outputs, business rules, and state transitions. It complements the [SRS](SRS.md) by describing *how* each required capability behaves, and it aligns with the implemented backend (Spring Boot 3 / Java 25), persisted risk data, and Angular frontend.
 
 References: [PRD](PRD.md), [BRD](BRD.md), [SRS](SRS.md), [ARCHITECTURE](ARCHITECTURE.md), [API-SPECIFICATION](API-SPECIFICATION.md), [EVENT-DESIGN](EVENT-DESIGN.md).
 
@@ -151,13 +151,10 @@ The pipeline converts operational data into structured, explained, and persisted
 
 ## 5. Cross-Cutting Rules
 
-- An employee must have an active assignment before recording attendance.
-- Employees cannot be assigned to overlapping shifts.
-- Users cannot approve their own requests.
-- All tenant-owned data is scoped to the caller's organization; access to another organization's resources returns `404`.
-- Approved requests are immutable unless corrected by an authorized workflow.
-- Submitted handovers are not editable unless returned to an editable state.
-- Critical operations (attendance writes, risk analysis runs) are idempotent and transactional.
+The full set of non-negotiable invariants — tenant isolation, self-approval, attendance/scheduling integrity, approved-state immutability, audit, idempotency, module boundaries, AI fallback, and API contract — is maintained in one place: [guardrails.md](guardrails.md). Consult it before changing behavior in any of these areas rather than re-deriving the rule here.
+
+Two FSD-specific facts not covered there:
+
 - All timestamps use UTC at service boundaries; risk windows are bucketed per configurable locale rules (Monday/1st-of-month).
 - Adapters for external providers (LLM, future integrations) are called from application services through ports, never from controllers.
 

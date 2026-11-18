@@ -8,7 +8,7 @@
 
 | Tool | Version | Used for |
 | --- | --- | --- |
-| Java | 21 | Backend language ([pom.xml](../pom.xml)) |
+| Java | 25 | Backend language ([pom.xml](../pom.xml)) |
 | TypeScript | ~5.1 | Frontend language ([frontend/package.json](../frontend/package.json)) |
 | Node.js | current LTS | Frontend build/dev tooling |
 
@@ -84,7 +84,7 @@ Prometheus scraping and Grafana dashboards are the documented target ([OBSERVABI
 
 | Tool | Used for |
 | --- | --- |
-| Docker | Backend image: multi-stage `maven:3.9-eclipse-temurin-21` build → `eclipse-temurin:21-jre` runtime ([Dockerfile](../Dockerfile)) |
+| Docker | Backend image: multi-stage `maven:3.9-eclipse-temurin-25` build → `eclipse-temurin:25-jre` runtime ([Dockerfile](../Dockerfile)) |
 | Docker (frontend) | nginx-backed Angular image, proxies `/api` to the backend ([frontend/Dockerfile](../frontend/Dockerfile)) |
 | Docker Compose | Local multi-service stack: `postgres`, `redis`, `kafka`, `backend`, `frontend` ([docker-compose.yml](../docker-compose.yml)) |
 

@@ -86,6 +86,28 @@ public class LeaveRequestService {
         return approved;
     }
 
+    @CacheEvict(value = { "leaveRequests", "leave-request-report" }, allEntries = true)
+    public LeaveRequest reject(UUID id) {
+        LeaveRequestEntity leaveRequest = leaveRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));
+        TenantScope.assertAccess(leaveRequest.organizationId());
+        if (leaveRequest.getStatus() != LeaveRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING leave requests can be rejected");
+        }
+        approvalEngine.decide(id, ApprovalDecision.REJECTED, currentUser.username(), null);
+        leaveRequest.reject();
+        leaveRequestRepository.save(leaveRequest);
+        LeaveRequest rejected = leaveRequest.toRecord();
+        eventPublisher.publish(DomainEvents.of(EventTypes.LEAVE_REJECTED, TenantScope.require(), "LeaveRequest",
+                rejected.id(),
+                currentUser.username(),
+                Payloads.json(java.util.Map.of(
+                        "employeeId", rejected.employeeId().toString(),
+                        "startDate", rejected.startDate().toString(),
+                        "endDate", rejected.endDate().toString()))));
+        return rejected;
+    }
+
     public LeaveRequest findById(UUID id) {
         LeaveRequestEntity leaveRequest = leaveRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave request not found"));

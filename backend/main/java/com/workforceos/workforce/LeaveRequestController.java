@@ -37,4 +37,9 @@ public class LeaveRequestController {
     public LeaveRequest approve(@PathVariable UUID id) {
         return leaveRequestService.approve(id);
     }
+
+    @PostMapping("/leave-requests/{id}/reject")
+    public LeaveRequest reject(@PathVariable UUID id) {
+        return leaveRequestService.reject(id);
+    }
 }

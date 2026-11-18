@@ -61,9 +61,9 @@ Implemented endpoints:
 | Teams | `GET/POST /teams`, `GET/DELETE /teams/{id}` |
 | Shifts | `GET/POST /shifts`, `GET/PATCH /shifts/{id}` |
 | Rosters | `GET/POST /rosters`, `GET /rosters/conflicts`, `GET /rosters/{id}`, `GET /rosters/{id}/auto-schedule`, `POST /rosters/{id}/publish`, `GET/POST /rosters/{id}/assignments` |
-| Attendance | `POST /attendance/clock-in`, `POST /attendance/clock-out`, `GET /attendance/me?employeeId=<uuid>` |
+| Attendance | `POST /attendance/clock-in`, `POST /attendance/clock-out`, `POST /attendance/break-start`, `POST /attendance/break-end`, `GET /attendance/me?employeeId=<uuid>` |
 | Attendance corrections | `GET/POST /attendance-corrections`, `POST /attendance-corrections/{id}/approve`, `POST /attendance-corrections/{id}/reject` |
-| Leave | `GET/POST /leave-requests`, `POST /leave-requests/{id}/approve` |
+| Leave | `GET/POST /leave-requests`, `POST /leave-requests/{id}/approve`, `POST /leave-requests/{id}/reject` |
 | Overtime | `GET/POST /overtime-requests`, `POST /overtime-requests/{id}/approve`, `POST /overtime-requests/{id}/reject` |
 | Shift swaps | `GET/POST /shift-swap-requests`, `POST /shift-swap-requests/{id}/approve`, `POST /shift-swap-requests/{id}/reject` |
 | Handovers | `GET/POST /handovers`, `POST /handovers/{id}/submit`, `POST /handovers/{id}/acknowledge` |
@@ -76,8 +76,9 @@ Implemented endpoints:
 | Analytics | `GET /analytics/absenteeism?windowDays=<n>`, `GET /analytics/forecast?horizonDays=<n>` |
 | Integrations | `GET /integrations`, `POST /integrations/biometric/clock-events` (config-gated) |
 | Events | `GET /events/outbox`, `GET /events/received` |
+| Documentation | `GET /openapi.yaml` |
 
-Shift swap and attendance corrections were planned as P1 and are now implemented (in-memory). Break events and `GET/PATCH` on several resources are not yet exposed by the API.
+Shift swap, attendance corrections, and break event recording are fully implemented. An OpenAPI 3.1 specification document is published at [docs/openapi.yaml](openapi.yaml) and served via `/api/v1/openapi.yaml`.
 
 ## 4. Response Semantics
 

@@ -5,7 +5,7 @@
 **Document Version:** 1.0
 **Status:** Draft
 **Product Type:** Full-stack workforce operations platform
-**Technology:** Angular frontend + Java 21 / Spring Boot 3 backend
+**Technology:** Angular frontend + Java 25 / Spring Boot 3 backend
 **Database:** PostgreSQL
 **Date:** August 2026
 
@@ -618,51 +618,7 @@ Leave by Department
 
 # 21. API Requirements
 
-Base URL:
-
-```text
-/api/v1
-```
-
-Authentication:
-
-```text
-Authorization: Bearer <token>
-```
-
-Example endpoints:
-
-```http
-POST /api/v1/auth/login
-
-GET /api/v1/employees
-POST /api/v1/employees
-GET /api/v1/employees/{id}
-
-GET /api/v1/shifts
-POST /api/v1/shifts
-
-GET /api/v1/rosters
-POST /api/v1/rosters
-POST /api/v1/rosters/{id}/publish
-
-POST /api/v1/attendance/clock-in
-POST /api/v1/attendance/clock-out
-
-GET /api/v1/attendance/me
-
-POST /api/v1/leave-requests
-POST /api/v1/leave-requests/{id}/approve
-POST /api/v1/leave-requests/{id}/reject
-
-POST /api/v1/overtime-requests
-POST /api/v1/overtime-requests/{id}/approve
-POST /api/v1/overtime-requests/{id}/reject
-
-POST /api/v1/handovers
-POST /api/v1/handovers/{id}/submit
-POST /api/v1/handovers/{id}/acknowledge
-```
+> Superseded by [API-SPECIFICATION.md](API-SPECIFICATION.md), the maintained record of the current `v1` endpoint surface, conventions, and status codes. The endpoint list originally kept here predated features shipped since (risk, assistant, analytics, integrations, organizations) and had drifted out of sync — do not use it as a reference.
 
 ---
 
@@ -677,7 +633,7 @@ The API should target:
 * Support concurrent attendance operations
 * Efficient pagination for large datasets
 
-Targets may be revised after load testing.
+Targets may be revised after load testing. **Correction:** pagination is not yet implemented (see [§27](#27-pagination)); the in-JVM `PerformanceSmokeTests` gate uses deliberately generous budgets (1000 ms p95, per [PROGRESS.md §4](PROGRESS.md)) as a regression smoke check, not a validated measurement of these targets — full load-harness verification is still pending per [TEST-PLAN.md §5](TEST-PLAN.md).
 
 ## Availability
 
@@ -701,6 +657,8 @@ The system must implement:
 * Rate limiting
 * Audit logging
 
+**Correction:** authentication is not JWT — `AuthService` issues an opaque bearer token signed with HMAC-SHA256, not a JWT. JWT adoption remains an open tracked decision; see [PROGRESS.md §5](PROGRESS.md).
+
 ## Reliability
 
 The system should support:
@@ -716,47 +674,7 @@ The system should support:
 
 # 23. Event Architecture
 
-The system should publish domain events for important operations.
-
-Example:
-
-```text
-AttendanceClockedIn
-AttendanceClockedOut
-RosterPublished
-LeaveApproved
-LeaveRejected
-OvertimeApproved
-HandoverSubmitted
-HandoverAcknowledged
-```
-
-Architecture:
-
-```text
-REST API
-   |
-   v
-Application Service
-   |
-   v
-Domain Operation
-   |
-   v
-Database Transaction
-   |
-   v
-Domain Event
-   |
-   v
-Kafka
-   |
-   +----> Notification
-   |
-   +----> Audit
-   |
-   +----> Analytics
-```
+> Superseded by [EVENT-DESIGN.md](EVENT-DESIGN.md). The implemented architecture is a transactional PostgreSQL outbox with synchronous in-process handlers and an optional Kafka relay (`workforce.events.kafka.enabled`) — not the generic "REST API → Kafka" flow originally sketched here.
 
 ---
 
@@ -770,157 +688,37 @@ Redis may be used for:
 * Rate limiting
 * Distributed locking
 
-Cache invalidation must occur when underlying data changes.
+Cache invalidation must occur when underlying data changes. **Correction:** rate limiting and distributed locking are not Redis-backed today — `RateLimitFilter` uses a per-instance in-memory `ConcurrentHashMap` token bucket, and no distributed-locking mechanism is implemented anywhere in the codebase. Redis (`RedisCacheConfig`) is used only for `@Cacheable` read-through caching of workforce/report/dashboard data.
 
 ---
 
 # 25. Idempotency
 
-Critical operations should support idempotency.
-
-Example:
-
-```http
-POST /api/v1/attendance/clock-in
-
-Idempotency-Key: 7f3e4d...
-```
-
-The same request must not create duplicate attendance records.
-
-This is particularly important when clients retry requests because of network failures.
+Critical operations must not create duplicate records on retry. **Correction:** there is no generic `Idempotency-Key` HTTP header middleware implemented — the header example previously shown here does not reflect a real contract. Idempotency is achieved per-domain via dedupe keys enforced as unique database constraints (e.g. `risk_assessments.uq_risk_assessments_dedupe_key`, the outbox's event-id uniqueness) plus domain invariants (e.g. one active clock-in session per employee). See [guardrails.md §5](guardrails.md) and [DATABASE-DESIGN.md §2](DATABASE-DESIGN.md).
 
 ---
 
 # 26. Error Handling
 
-The API should use a standardized error format.
-
-Example:
-
-```json
-{
-  "timestamp": "2026-08-28T08:30:00Z",
-  "status": 409,
-  "code": "ATTENDANCE_ALREADY_ACTIVE",
-  "message": "Employee already has an active attendance session",
-  "path": "/api/v1/attendance/clock-in"
-}
-```
-
-HTTP status codes:
-
-```text
-200 OK
-201 CREATED
-204 NO_CONTENT
-400 BAD_REQUEST
-401 UNAUTHORIZED
-403 FORBIDDEN
-404 NOT_FOUND
-409 CONFLICT
-422 UNPROCESSABLE_ENTITY
-429 TOO_MANY_REQUESTS
-500 INTERNAL_SERVER_ERROR
-```
+> Superseded by [API-SPECIFICATION.md §5](API-SPECIFICATION.md), which documents the actual `ApiError` shape returned by `ApiExceptionHandler` — it also carries `traceId` and `requestId` for log correlation, which the example originally shown here omitted.
 
 ---
 
 # 27. Pagination
 
-Collection endpoints must support pagination.
-
-Example:
-
-```http
-GET /api/v1/employees?page=0&size=20
-```
-
-Response:
-
-```json
-{
-  "content": [],
-  "page": 0,
-  "size": 20,
-  "totalElements": 100,
-  "totalPages": 5
-}
-```
+**Not yet implemented.** Collection endpoints currently return full, unpaginated lists — the response shape shown here is a target design, not current behavior. See [API-SPECIFICATION.md §1](API-SPECIFICATION.md), which flags pagination parameters and page size as TBD, and [PROGRESS.md](PROGRESS.md) for tracking.
 
 ---
 
 # 28. Database Requirements
 
-Primary database:
-
-```text
-PostgreSQL
-```
-
-Migration:
-
-```text
-Flyway
-```
-
-The database must maintain referential integrity through:
-
-* Primary keys
-* Foreign keys
-* Unique constraints
-* Check constraints
-* Indexes
-
-Important indexes should be created for:
-
-* Employee identity
-* Attendance employee/date
-* Roster employee/date
-* Approval status
-* Handover status
-* Audit timestamp
+> Superseded by [DATABASE-DESIGN.md](DATABASE-DESIGN.md), the maintained record of the implemented schema, migrations (`V1`–`V6`), constraints, indexes, and tenant-isolation strategy.
 
 ---
 
 # 29. Testing Requirements
 
-## Unit Tests
-
-Business logic must have unit tests.
-
-Examples:
-
-```text
-LateCalculationService
-RosterConflictService
-AttendanceService
-ApprovalService
-OvertimeService
-```
-
-## Integration Tests
-
-Integration tests must verify:
-
-* Database operations
-* Transactions
-* Security
-* API behavior
-
-## Testcontainers
-
-PostgreSQL and Kafka should be tested using Testcontainers where appropriate.
-
-## Test Coverage
-
-Initial target:
-
-```text
-Business logic coverage: ≥ 80%
-```
-
-Coverage is a quality indicator, not the sole definition of test quality.
+> Superseded by [TEST-PLAN.md](TEST-PLAN.md), the maintained test strategy and current baseline (149 backend tests via `mvn test`, `test` profile/H2, 0 failures). **Correction:** Testcontainers is not wired into the build (no dependency in `pom.xml`) — integration tests run against H2 in PostgreSQL-compatibility mode today; see [tools.md §9](tools.md) for the verified toolchain.
 
 ---
 
@@ -953,34 +751,7 @@ Logs should be structured and include correlation/request IDs where possible.
 
 # 31. Deployment
 
-Initial deployment:
-
-```text
-Docker
-Docker Compose
-PostgreSQL
-Redis
-Kafka
-Spring Boot
-```
-
-CI/CD:
-
-```text
-Git
-   |
-   v
-GitHub
-   |
-   v
-CI Pipeline
-   |
-   ├── Build
-   ├── Unit Test
-   ├── Integration Test
-   ├── Security Check
-   └── Docker Build
-```
+> Superseded by [DEPLOYMENT.md](DEPLOYMENT.md), the maintained record of environments, configuration variables, and release process. **Correction:** the CI pipeline sketched here does not exist yet — there is no committed `.github/workflows`; automated checks currently run manually (`mvn test`, Playwright) — see [PROGRESS.md §5](PROGRESS.md).
 
 ---
 
@@ -1004,62 +775,7 @@ A feature is considered complete when:
 
 # 33. MVP Acceptance Criteria
 
-## Employee
-
-* [ ] Admin/HR can create employee.
-* [ ] Employee can be updated.
-* [ ] Employee can be deactivated.
-* [ ] Employee belongs to a team.
-
-## Shift
-
-* [ ] Shift can be created.
-* [ ] Shift can be updated.
-* [ ] Overnight shift is supported.
-* [ ] Break configuration is supported.
-
-## Roster
-
-* [ ] Manager can create roster.
-* [ ] Employee can be assigned.
-* [ ] Overlapping shifts are rejected.
-* [ ] Roster can be published.
-
-## Attendance
-
-* [ ] Employee can clock in.
-* [ ] Employee can clock out.
-* [ ] Duplicate clock-in is rejected.
-* [ ] Late status is calculated.
-* [ ] Overnight attendance works.
-
-## Leave
-
-* [ ] Employee can submit leave.
-* [ ] Manager can approve.
-* [ ] Manager can reject.
-* [ ] Approval history is stored.
-
-## Overtime
-
-* [ ] Employee can submit overtime.
-* [ ] Manager can approve.
-* [ ] Manager can reject.
-* [ ] Approval is auditable.
-
-## Handover
-
-* [ ] Employee can create handover.
-* [ ] Handover can be submitted.
-* [ ] Receiving shift can acknowledge.
-* [ ] Handover history is preserved.
-
-## Organization and Tenant Isolation
-
-* [ ] ADMIN can create and manage organizations.
-* [ ] ADMIN can provision accounts scoped to an organization.
-* [ ] Provisioned accounts authenticate against their own organization only.
-* [ ] Cross-tenant resource access returns 404.
+> Superseded by [ACCEPTANCE-CRITERIA.md](ACCEPTANCE-CRITERIA.md), the maintained release gate. It covers everything in the checklist that used to live here plus risk intelligence, AI assistance, predictive analytics, external integrations, and multi-tenant isolation, each tied to its automated test evidence.
 
 ---
 
@@ -1265,7 +981,7 @@ The system should demonstrate enterprise backend engineering practices using:
 
 ```text
 Angular
-Java 21
+Java 25
 Spring Boot 3
 Spring Security
 JPA / Hibernate
@@ -1274,12 +990,12 @@ Redis
 Kafka
 Flyway
 JUnit
-Testcontainers
 Docker
 Actuator
 Micrometer
-Prometheus
 ```
+
+**Correction:** `Testcontainers` and a dedicated `Prometheus` metrics registry were on the original target list but are not wired into the build — there is no such dependency in `pom.xml` today; integration tests run against H2, and metrics are exposed only through Spring Boot Actuator. See [tools.md](tools.md) for the current, code-verified dependency list.
 
 ---
 

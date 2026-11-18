@@ -29,7 +29,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
                     if (securityEnabled) {
-                        auth.requestMatchers("/api/v1/auth/**", "/api/v1/health", "/actuator/**").permitAll()
+                        auth.requestMatchers("/api/v1/auth/**", "/api/v1/health", "/api/v1/openapi.yaml", "/actuator/**").permitAll()
                                 .anyRequest().authenticated();
                     } else {
                         auth.anyRequest().permitAll();

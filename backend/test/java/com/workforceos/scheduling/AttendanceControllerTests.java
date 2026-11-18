@@ -93,6 +93,61 @@ class AttendanceControllerTests {
                 .andExpect(status().isConflict());
     }
 
+    @Test
+    void recordsBreakStartAndEndDuringActiveSession() throws Exception {
+        UUID employeeId = UUID.randomUUID();
+        UUID rosterId = createRoster();
+        createAssignment(rosterId, employeeId, "2026-09-06T08:00:00+00:00", "2026-09-06T16:00:00+00:00");
+
+        // Break without active session fails with 409 Conflict
+        mockMvc.perform(post("/api/v1/attendance/break-start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "employeeId": "%s",
+                                  "occurredAt": "2026-09-06T12:00:00+00:00"
+                                }
+                                """.formatted(employeeId)))
+                .andExpect(status().isConflict());
+
+        // Clock in
+        mockMvc.perform(post("/api/v1/attendance/clock-in")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "employeeId": "%s",
+                                  "occurredAt": "2026-09-06T08:00:00+00:00"
+                                }
+                                """.formatted(employeeId)))
+                .andExpect(status().isOk());
+
+        // Break start
+        mockMvc.perform(post("/api/v1/attendance/break-start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "employeeId": "%s",
+                                  "occurredAt": "2026-09-06T12:00:00+00:00"
+                                }
+                                """.formatted(employeeId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
+                .andExpect(jsonPath("$.active").value(true));
+
+        // Break end
+        mockMvc.perform(post("/api/v1/attendance/break-end")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "employeeId": "%s",
+                                  "occurredAt": "2026-09-06T12:30:00+00:00"
+                                }
+                                """.formatted(employeeId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.employeeId").value(employeeId.toString()))
+                .andExpect(jsonPath("$.active").value(true));
+    }
+
     private UUID createRoster() throws Exception {
         String request = """
                 {
