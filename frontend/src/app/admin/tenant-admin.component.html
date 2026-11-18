@@ -73,12 +73,12 @@
       <section class="panel">
         <h2 class="panel__title">Provision Organization Account</h2>
         <form class="form" (ngSubmit)="provisionUser()">
-          <label>Username</label>
-          <input type="text" [(ngModel)]="acctUsername" name="acctUsername" placeholder="e.g. manager_ops" />
-          <label>Password</label>
-          <input type="password" [(ngModel)]="acctPassword" name="acctPassword" placeholder="••••••••" />
-          <label>Role</label>
-          <select [(ngModel)]="acctRole" name="acctRole">
+          <label for="acctUsername">Username</label>
+          <input id="acctUsername" type="text" [(ngModel)]="acctUsername" name="acctUsername" placeholder="e.g. manager_ops" />
+          <label for="acctPassword">Password</label>
+          <input id="acctPassword" type="password" [(ngModel)]="acctPassword" name="acctPassword" placeholder="••••••••" />
+          <label for="acctRole">Role</label>
+          <select id="acctRole" [(ngModel)]="acctRole" name="acctRole">
             <option value="MANAGER">MANAGER</option>
             <option value="ADMIN">ADMIN</option>
           </select>
@@ -89,7 +89,14 @@
       <section class="panel">
         <h2 class="panel__title">Organizations Directory</h2>
         <form class="inline-form" (ngSubmit)="createOrg()">
-          <input type="text" [(ngModel)]="newOrgName" name="newOrgName" placeholder="New organization name" />
+          <input
+            id="newOrgName"
+            type="text"
+            [(ngModel)]="newOrgName"
+            name="newOrgName"
+            placeholder="New organization name"
+            aria-label="New organization name"
+          />
           <button type="submit" class="btn">Create</button>
         </form>
         <ul class="org-list">

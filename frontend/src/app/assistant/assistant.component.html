@@ -59,9 +59,11 @@
 
       <form class="chat-input-form" (ngSubmit)="send()">
         <input
+          id="assistant-question"
           type="text"
           class="chat-input"
           placeholder="Ask a question about workforce, schedules, risk..."
+          aria-label="Ask a question about workforce, schedules, risk"
           [(ngModel)]="question"
           name="question"
           [disabled]="loading"
