@@ -1,0 +1,93 @@
+<div class="register-page">
+  <section class="brand-panel">
+    <div class="brand-panel__content">
+      <div class="wordmark">
+        <span class="wordmark__mark">WF</span>
+        <span class="wordmark__text">WorkforceOS</span>
+      </div>
+
+      <h2 class="brand-panel__hero">Create your organization space</h2>
+      <p class="brand-panel__tagline">Isolated tenancy, full compliance, and automated scheduling from day one.</p>
+      <p class="brand-panel__sub">
+        Set up your workforce organization and provision your administrator account.
+      </p>
+    </div>
+  </section>
+
+  <section class="form-panel">
+    <form class="register-card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <h1 class="register-card__title">Register Organization</h1>
+      <p class="register-card__subtitle">Start your 14-day commercial SaaS workspace.</p>
+
+      <div class="field">
+        <label for="organizationName">Organization / Company Name</label>
+        <input
+          id="organizationName"
+          type="text"
+          formControlName="organizationName"
+          placeholder="e.g. Acme Corp"
+          class="field__input"
+          [class.field__input--invalid]="organizationName.invalid && organizationName.touched"
+        />
+        <span class="field__error" *ngIf="organizationName.invalid && organizationName.touched">
+          Organization name is required.
+        </span>
+      </div>
+
+      <div class="field">
+        <label for="timezone">Primary Timezone</label>
+        <select id="timezone" formControlName="timezone" class="field__input">
+          <option value="UTC">UTC (Universal Coordinated Time)</option>
+          <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
+          <option value="America/New_York">America/New_York (EST)</option>
+          <option value="Europe/London">Europe/London (GMT)</option>
+          <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="username">Administrator Username</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          placeholder="e.g. admin_acme"
+          autocomplete="username"
+          class="field__input"
+          [class.field__input--invalid]="username.invalid && username.touched"
+        />
+        <span class="field__error" *ngIf="username.invalid && username.touched">
+          Administrator username is required.
+        </span>
+      </div>
+
+      <div class="field">
+        <label for="password">Password (min 6 characters)</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="••••••••"
+          autocomplete="new-password"
+          class="field__input"
+          [class.field__input--invalid]="password.invalid && password.touched"
+        />
+        <span class="field__error" *ngIf="password.invalid && password.touched">
+          Password must be at least 6 characters.
+        </span>
+      </div>
+
+      <p class="form-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
+
+      <button type="submit" class="submit-btn" [disabled]="submitting">
+        <span *ngIf="!submitting">Create Organization</span>
+        <span *ngIf="submitting">Provisioning workspace…</span>
+      </button>
+
+      <div class="signin-link">
+        <span>Already have an account? </span>
+        <a routerLink="/login">Sign in</a>
+      </div>
+    </form>
+  </section>
+</div>

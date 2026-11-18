@@ -48,4 +48,59 @@ class AuthControllerTests {
                         .content("{\"username\":null,\"password\":\"admin\"}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void registersTenantAndReturnsAdminToken() throws Exception {
+        String request = """
+                {
+                  "organizationName": "Acme Global",
+                  "timezone": "UTC",
+                  "adminUsername": "acme_lead",
+                  "adminPassword": "SecretPassword123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/register-tenant")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.organizationName").value("Acme Global"))
+                .andExpect(jsonPath("$.username").value("acme_lead"))
+                .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
+
+    @Test
+    void rejectsDuplicateUsernameOnTenantRegistration() throws Exception {
+        String request = """
+                {
+                  "organizationName": "Conflict Org",
+                  "timezone": "UTC",
+                  "adminUsername": "admin",
+                  "adminPassword": "SecretPassword123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/register-tenant")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void rejectsMissingFieldsOnTenantRegistration() throws Exception {
+        String request = """
+                {
+                  "organizationName": "",
+                  "timezone": "UTC",
+                  "adminUsername": "valid_user",
+                  "adminPassword": ""
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/register-tenant")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest());
+    }
 }

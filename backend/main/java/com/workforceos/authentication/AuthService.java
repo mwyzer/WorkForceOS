@@ -23,17 +23,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserAccountRepository userAccountRepository;
     private final UserAccountLookupService userAccountLookupService;
+    private final OrganizationService organizationService;
     private final byte[] signingKey;
 
     public AuthService(PasswordEncoder passwordEncoder,
             UserAccountRepository userAccountRepository,
             UserAccountLookupService userAccountLookupService,
+            OrganizationService organizationService,
             @Value("${workforce.auth.signing-key:workforce-os-development-signing-key-change-me}") String signingKey,
             @Value("${workforce.auth.admin-username:admin}") String adminUsername,
             @Value("${workforce.auth.admin-password:admin}") String adminPassword) {
         this.passwordEncoder = passwordEncoder;
         this.userAccountRepository = userAccountRepository;
         this.userAccountLookupService = userAccountLookupService;
+        this.organizationService = organizationService;
         this.signingKey = signingKey.getBytes(StandardCharsets.UTF_8);
         if (userAccountRepository.count() == 0) {
             userAccountRepository.save(new UserAccountEntity(
@@ -65,7 +68,7 @@ public class AuthService {
     public UserAccount provisionAccount(String username, String password, java.util.UUID organizationId,
             Set<String> roles) {
         if (ValidationUtils.isBlank(username) || ValidationUtils.isBlank(password) || organizationId == null
-                || roles == null || roles.isEmpty() || roles.contains(null)) {
+                || roles == null || roles.isEmpty() || roles.stream().anyMatch(java.util.Objects::isNull)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Username, password, organization, and roles are required");
         }
@@ -76,6 +79,27 @@ public class AuthService {
                 passwordEncoder.encode(password), new java.util.LinkedHashSet<>(roles), true);
         userAccountRepository.save(account);
         return account.toRecord();
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public TenantRegistrationResponse registerTenant(TenantRegistrationRequest request) {
+        if (request == null
+                || ValidationUtils.isBlank(request.organizationName())
+                || ValidationUtils.isBlank(request.adminUsername())
+                || ValidationUtils.isBlank(request.adminPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Organization name, admin username, and password are required");
+        }
+        if (userAccountLookupService.findUser(request.adminUsername().trim()) != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        }
+        String tz = ValidationUtils.isBlank(request.timezone()) ? "UTC" : request.timezone().trim();
+        com.workforceos.organization.Organization org = organizationService.create(
+                new com.workforceos.organization.OrganizationRequest(request.organizationName().trim(), tz));
+        UserAccount account = provisionAccount(request.adminUsername().trim(), request.adminPassword().trim(),
+                org.id(), Set.of("ADMIN", "MANAGER"));
+        String token = login(new AuthLoginRequest(account.username(), request.adminPassword().trim()));
+        return new TenantRegistrationResponse(org.id(), org.name(), account.username(), token, "Bearer");
     }
 
     public UserAccount authenticate(String token) {

@@ -46,6 +46,61 @@ paths:
         '401':
           description: Invalid credentials
 
+  /auth/register-tenant:
+    post:
+      summary: Register a new organization tenant and provision initial administrator
+      operationId: registerTenant
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - organizationName
+                - adminUsername
+                - adminPassword
+              properties:
+                organizationName:
+                  type: string
+                  example: Acme Corp
+                timezone:
+                  type: string
+                  example: UTC
+                adminUsername:
+                  type: string
+                  example: admin_acme
+                adminPassword:
+                  type: string
+                  example: SecretPassword123
+      responses:
+        '201':
+          description: Tenant registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organizationId:
+                    type: string
+                    format: uuid
+                  organizationName:
+                    type: string
+                  username:
+                    type: string
+                  accessToken:
+                    type: string
+                  tokenType:
+                    type: string
+                    example: Bearer
+        '400':
+          description: Missing required fields
+        '409':
+          description: Username already exists
+
   /health:
     get:
       summary: Health check

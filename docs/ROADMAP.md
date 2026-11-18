@@ -51,7 +51,7 @@ Dates are intentionally omitted until implementation capacity, dependencies, and
 - [x] Extend `organization_id` to the remaining JPA entities (employees, teams, leave/overtime, attendance, corrections, approvals, handovers, notifications, audit, shift swaps, risk) and scope their service layers.
 - [x] Tenant-aware caching for report/analytics/dashboard aggregation results: `ReportService`, `DashboardService`, `DemandForecastService`, and `AbsenteeismAnalyticsService` cache keys are tenant-prefixed, preventing cross-tenant cache poisoning.
 - [x] Tenant-context event projectors: `RiskAnalysisScheduler` and `NotificationProjector` derive the tenant from the triggering event's `organization_id` so outbox replay writes land in the correct tenant.
-- [ ] Self-service tenant onboarding (signup flow, org creation, admin provisioning) on top of the admin API.
+- [x] Self-service tenant onboarding (signup flow, org creation, admin provisioning) on top of the admin API.
 - [ ] Commercial packaging: plan/catalog definitions, billing, seat entitlements, and license enforcement.
 - [ ] Frontend tenant admin console and deployment hardening (PostgreSQL RLS, per-tenant connection or schema-row partitioning decisions).
 

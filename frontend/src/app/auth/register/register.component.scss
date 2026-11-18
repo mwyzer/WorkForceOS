@@ -1,0 +1,148 @@
+:host {
+  display: block;
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  color: #1c2333;
+}
+
+.register-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+}
+
+.brand-panel {
+  background: #0b0f1a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 4rem;
+
+  &__content { max-width: 28rem; }
+  &__hero { font-size: 2rem; margin: 0 0 1rem; color: #f5a623; }
+  &__tagline { font-size: 1.1rem; line-height: 1.4; color: #cfd4de; }
+  &__sub { font-size: 0.9rem; color: #8b93ad; margin-top: 1rem; }
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+
+  &__mark {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid #2a3350;
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    color: #f5a623;
+  }
+
+  &__text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.95rem;
+    color: #8b93ad;
+    text-transform: uppercase;
+  }
+}
+
+.form-panel {
+  background: #f7f5ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 3rem;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 24rem;
+
+  &__title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+  }
+
+  &__subtitle {
+    margin: 0 0 1.5rem;
+    font-size: 0.9rem;
+    color: #756f63;
+  }
+}
+
+.field {
+  margin-bottom: 1.1rem;
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+
+  &__input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #e1ddd0;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 0.9rem;
+
+    &:focus { outline: none; border-color: #f5a623; }
+    &--invalid { border-color: #d9463f; }
+  }
+
+  &__error {
+    display: block;
+    font-size: 0.75rem;
+    color: #d9463f;
+    margin-top: 0.25rem;
+  }
+}
+
+.form-error {
+  background: #fde8e7;
+  color: #d9463f;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #f5a623;
+  color: #0b0f1a;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+
+  &:hover { background: #c97f0b; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.signin-link {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  color: #756f63;
+
+  a {
+    color: #0b0f1a;
+    font-weight: 700;
+    text-decoration: none;
+    &:hover { color: #f5a623; text-decoration: underline; }
+  }
+}
+
+@media (max-width: 768px) {
+  .register-page { grid-template-columns: 1fr; }
+  .brand-panel { display: none; }
+}

@@ -28,6 +28,7 @@ Legend: ✅ delivered · 🟡 partially delivered · ⬜ not started. Persistenc
 | Capability | Backend | Persistence | API | Frontend | Tests | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Auth, users, roles, signed bearer tokens | ✅ | ✅ PostgreSQL (JPA + Flyway) | ✅ `/auth/login` | ✅ login | ✅ | ✅ |
+| Self-service tenant onboarding | ✅ | ✅ PostgreSQL | ✅ `/auth/register-tenant` | ✅ register page | ✅ `AuthControllerTests` | ✅ |
 | Admin account provisioning | ✅ | ✅ PostgreSQL | ✅ `/admin/accounts` | ⬜ | ✅ `OrganizationAdminTests` | ✅ |
 | Organization CRUD + current tenant | ✅ | ✅ PostgreSQL | ✅ `/organizations*` | ⬜ | ✅ `OrganizationControllerTests` | ✅ |
 | Tenant isolation (service-layer `TenantScope`) | ✅ | ✅ all tenant-owned tables carry `organization_id` | ✅ enforced across endpoints | n/a | ✅ `TenantIsolationTests` | ✅ |
@@ -73,7 +74,6 @@ Legend: ✅ delivered · 🟡 partially delivered · ⬜ not started. Persistenc
 
 High priority:
 
-- Self-service tenant onboarding (signup → org creation → admin provisioning) on top of the admin API.
 - Commercial packaging: plans/catalog, billing, seat entitlements, license enforcement.
 - Deployment hardening: PostgreSQL Row-Level Security as a persistence-layer backstop; per-tenant connection/partition decision.
 - Frontend tenant admin console.

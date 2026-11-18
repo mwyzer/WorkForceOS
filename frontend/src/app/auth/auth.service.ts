@@ -7,6 +7,21 @@ export interface LoginResponse {
   tokenType: string;
 }
 
+export interface RegisterTenantPayload {
+  organizationName: string;
+  timezone?: string;
+  adminUsername: string;
+  adminPassword: string;
+}
+
+export interface RegisterTenantResponse {
+  organizationId: string;
+  organizationName: string;
+  username: string;
+  accessToken: string;
+  tokenType: string;
+}
+
 const TOKEN_KEY = 'workforceos.accessToken';
 
 @Injectable({ providedIn: 'root' })
@@ -16,6 +31,12 @@ export class AuthService {
   login(username: string, password: string): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>('/api/v1/auth/login', { username, password })
+      .pipe(tap((response) => localStorage.setItem(TOKEN_KEY, response.accessToken)));
+  }
+
+  registerTenant(payload: RegisterTenantPayload): Observable<RegisterTenantResponse> {
+    return this.http
+      .post<RegisterTenantResponse>('/api/v1/auth/register-tenant', payload)
       .pipe(tap((response) => localStorage.setItem(TOKEN_KEY, response.accessToken)));
   }
 

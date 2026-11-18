@@ -51,7 +51,7 @@ Implemented endpoints:
 
 | Area | Endpoints |
 | --- | --- |
-| Auth | `POST /auth/login` |
+| Auth | `POST /auth/login`, `POST /auth/register-tenant` (self-service tenant registration) |
 | Health | `GET /health` |
 | Organizations | `GET /organizations`, `POST /organizations`, `GET /organizations/{id}`, `PATCH /organizations/{id}` (all `ADMIN`-only), `GET /organizations/current` (any authenticated user; resolves the caller's tenant) |
 | Admin | `POST /admin/accounts` (`ADMIN`-only; provisions a user account scoped to an organization) |
