@@ -1,0 +1,161 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f7f5ef;
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  color: #1c2333;
+}
+
+.admin__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+  background: #0b0f1a;
+  color: #fff;
+}
+
+.admin__brand {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.admin__nav { display: flex; gap: 1.25rem; }
+
+.admin__link {
+  color: #cfd4de;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  &:hover, &--active { color: #f5a623; }
+}
+
+.admin__logout {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0b0f1a;
+  background: #f5a623;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.admin__content { max-width: 1040px; margin: 2rem auto; padding: 0 1rem; }
+.admin__header { margin-bottom: 1.5rem; }
+.admin__title { margin: 0; font-size: 1.5rem; font-weight: 700; }
+
+.feedback {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2e7d32;
+  &--error { color: #c62828; }
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e1ddd0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  &__head { display: flex; justify-content: space-between; align-items: flex-start; }
+  &__title { margin: 0 0 0.5rem; font-size: 1.15rem; font-weight: 700; }
+  &__sub { margin: 0; font-size: 0.8rem; color: #756f63; }
+}
+
+.badge {
+  background: #0b0f1a;
+  color: #f5a623;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.entitlement-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e1ddd0;
+}
+
+.seat-stat__val { font-size: 1.5rem; font-weight: 700; display: block; }
+.seat-stat__lbl { font-size: 0.8rem; color: #756f63; }
+
+.feature-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tag {
+  background: #f7f5ef;
+  border: 1px solid #e1ddd0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.plan-card {
+  border: 1px solid #e1ddd0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  &--active { border: 2px solid #f5a623; background: #fffdf9; }
+  &__name { font-weight: 700; font-size: 1.1rem; }
+  &__price { font-size: 1.75rem; font-weight: 700; margin: 0.5rem 0; span { font-size: 0.85rem; color: #756f63; } }
+  &__seats { font-size: 0.8rem; color: #756f63; margin-bottom: 0.75rem; }
+  &__features { padding-left: 1.1rem; font-size: 0.8rem; flex: 1; margin-bottom: 1rem; }
+}
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  label { font-size: 0.8rem; font-weight: 600; }
+  input, select { padding: 0.55rem; border: 1px solid #e1ddd0; border-radius: 6px; }
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  input { flex: 1; padding: 0.55rem; border: 1px solid #e1ddd0; border-radius: 6px; }
+}
+
+.btn {
+  background: #f5a623;
+  color: #0b0f1a;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.org-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #e1ddd0;
+    font-size: 0.85rem;
+    span { color: #756f63; }
+  }
+}

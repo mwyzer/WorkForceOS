@@ -12,7 +12,7 @@ This file is a living tracker for what is built, where each capability runs (in-
 | Phase 1 — P0 MVP core | ✅ Complete |
 | Phase 2 — P1 operational scale | ✅ Complete |
 | Phase 3 — P2 intelligence and integrations | ✅ Complete |
-| Phase 4 — Commercial SaaS rollout | 🚧 In progress (tenant isolation + org administration delivered; onboarding, packaging, RLS hardening pending) |
+| Phase 4 — Commercial SaaS rollout | ✅ Complete (tenant isolation, org admin, self-service onboarding, commercial plans/entitlements, tenant admin console delivered) |
 | Production release | Not started (release evidence and acceptance gate pending) |
 
 ## 1a. Runtime
@@ -29,8 +29,9 @@ Legend: ✅ delivered · 🟡 partially delivered · ⬜ not started. Persistenc
 | --- | --- | --- | --- | --- | --- | --- |
 | Auth, users, roles, signed bearer tokens | ✅ | ✅ PostgreSQL (JPA + Flyway) | ✅ `/auth/login` | ✅ login | ✅ | ✅ |
 | Self-service tenant onboarding | ✅ | ✅ PostgreSQL | ✅ `/auth/register-tenant` | ✅ register page | ✅ `AuthControllerTests` | ✅ |
-| Admin account provisioning | ✅ | ✅ PostgreSQL | ✅ `/admin/accounts` | ⬜ | ✅ `OrganizationAdminTests` | ✅ |
-| Organization CRUD + current tenant | ✅ | ✅ PostgreSQL | ✅ `/organizations*` | ⬜ | ✅ `OrganizationControllerTests` | ✅ |
+| Admin account provisioning | ✅ | ✅ PostgreSQL | ✅ `/admin/accounts` | ✅ admin page | ✅ `OrganizationAdminTests` | ✅ |
+| Organization CRUD + current tenant | ✅ | ✅ PostgreSQL | ✅ `/organizations*` | ✅ admin page | ✅ `OrganizationControllerTests` | ✅ |
+| Commercial plans & seat entitlements | ✅ | n/a | ✅ `/organizations/plans`, `/organizations/current/subscription` | ✅ admin page | ✅ `OrganizationControllerTests` | ✅ |
 | Tenant isolation (service-layer `TenantScope`) | ✅ | ✅ all tenant-owned tables carry `organization_id` | ✅ enforced across endpoints | n/a | ✅ `TenantIsolationTests` | ✅ |
 | Workforce (departments, teams, employees) | ✅ | ✅ PostgreSQL | ✅ | ✅ employees page | ✅ | ✅ |
 | Shifts, rosters, conflicts, publish | ✅ | ✅ PostgreSQL | ✅ | ⬜ | ✅ | ✅ |

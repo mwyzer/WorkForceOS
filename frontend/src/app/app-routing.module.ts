@@ -9,6 +9,7 @@ import { HomeComponent } from './home/home.component';
 import { RiskDashboardComponent } from './risk/risk-dashboard/risk-dashboard.component';
 import { AttendanceComponent } from './attendance/attendance.component';
 import { AssistantComponent } from './assistant/assistant.component';
+import { TenantAdminComponent } from './admin/tenant-admin.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -18,6 +19,7 @@ const routes: Routes = [
   { path: 'attendance', component: AttendanceComponent, canActivate: [authGuard] },
   { path: 'risk', component: RiskDashboardComponent, canActivate: [authGuard] },
   { path: 'assistant', component: AssistantComponent, canActivate: [authGuard] },
+  { path: 'admin', component: TenantAdminComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' }
 ];
 

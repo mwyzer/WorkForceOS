@@ -16,6 +16,7 @@ import { RiskChartsComponent } from './risk/risk-charts/risk-charts.component';
 import { RiskAssessmentsComponent } from './risk/risk-assessments/risk-assessments.component';
 import { AssistantComponent } from './assistant/assistant.component';
 import { AttendanceComponent } from './attendance/attendance.component';
+import { TenantAdminComponent } from './admin/tenant-admin.component';
 
 @NgModule({
   declarations: [
@@ -26,6 +27,7 @@ import { AttendanceComponent } from './attendance/attendance.component';
     EmployeesComponent,
     AttendanceComponent,
     AssistantComponent,
+    TenantAdminComponent,
     RiskDashboardComponent,
     RiskPipelineComponent,
     RiskChartsComponent,

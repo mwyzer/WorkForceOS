@@ -52,8 +52,8 @@ Dates are intentionally omitted until implementation capacity, dependencies, and
 - [x] Tenant-aware caching for report/analytics/dashboard aggregation results: `ReportService`, `DashboardService`, `DemandForecastService`, and `AbsenteeismAnalyticsService` cache keys are tenant-prefixed, preventing cross-tenant cache poisoning.
 - [x] Tenant-context event projectors: `RiskAnalysisScheduler` and `NotificationProjector` derive the tenant from the triggering event's `organization_id` so outbox replay writes land in the correct tenant.
 - [x] Self-service tenant onboarding (signup flow, org creation, admin provisioning) on top of the admin API.
-- [ ] Commercial packaging: plan/catalog definitions, billing, seat entitlements, and license enforcement.
-- [ ] Frontend tenant admin console and deployment hardening (PostgreSQL RLS, per-tenant connection or schema-row partitioning decisions).
+- [x] Commercial packaging: plan/catalog definitions, billing, seat entitlements, and license enforcement.
+- [x] Frontend tenant admin console and deployment hardening (PostgreSQL RLS, per-tenant connection or schema-row partitioning decisions).
 
 ## Prioritization Principles
 

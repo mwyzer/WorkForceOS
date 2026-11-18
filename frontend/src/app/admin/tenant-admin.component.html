@@ -1,0 +1,104 @@
+<div class="admin">
+  <header class="admin__bar">
+    <span class="admin__brand">WorkforceOS</span>
+    <nav class="admin__nav">
+      <a class="admin__link" routerLink="/">Overview</a>
+      <a class="admin__link" routerLink="/employees">Employees</a>
+      <a class="admin__link" routerLink="/attendance">Attendance</a>
+      <a class="admin__link" routerLink="/risk">Risk intelligence</a>
+      <a class="admin__link" routerLink="/assistant">AI Assistant</a>
+      <span class="admin__link admin__link--active">Tenant Admin</span>
+    </nav>
+    <button type="button" class="admin__logout" (click)="logout()">Sign out</button>
+  </header>
+
+  <main class="admin__content">
+    <div class="admin__header">
+      <h1 class="admin__title">Tenant Administration &amp; Subscription</h1>
+      <p class="feedback" [ngClass]="{ 'feedback--error': isError }" *ngIf="statusMessage">
+        {{ statusMessage }}
+      </p>
+    </div>
+
+    <!-- Current Organization & Entitlements -->
+    <section class="panel" *ngIf="currentOrg">
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title">{{ currentOrg.name }}</h2>
+          <p class="panel__sub">Tenant ID: {{ currentOrg.id }} · Timezone: {{ currentOrg.timezone }}</p>
+        </div>
+        <span class="badge" *ngIf="subscription">{{ subscription.planName }} ({{ subscription.billingStatus }})</span>
+      </div>
+
+      <div class="entitlement-row" *ngIf="subscription">
+        <div class="seat-stat">
+          <span class="seat-stat__val">{{ subscription.seatsUsed }} / {{ subscription.seatLimit }}</span>
+          <span class="seat-stat__lbl">Active Employee Seats Used</span>
+        </div>
+        <div class="feature-tags">
+          <span class="tag" *ngFor="let f of subscription.enabledFeatures">{{ f }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Commercial Plans Catalog -->
+    <section class="panel" *ngIf="plans.length > 0">
+      <h2 class="panel__title">Commercial Subscription Plans</h2>
+      <div class="plan-grid">
+        <div
+          class="plan-card"
+          *ngFor="let plan of plans"
+          [ngClass]="{ 'plan-card--active': subscription?.planCode === plan.code }"
+        >
+          <div class="plan-card__name">{{ plan.name }}</div>
+          <div class="plan-card__price">${{ plan.monthlyPriceUsd }}<span>/mo</span></div>
+          <div class="plan-card__seats">Up to {{ plan.maxSeats }} employee seats</div>
+          <ul class="plan-card__features">
+            <li *ngFor="let feat of plan.features">{{ feat }}</li>
+          </ul>
+          <button
+            type="button"
+            class="btn"
+            [disabled]="subscription?.planCode === plan.code"
+            (click)="selectPlan(plan.code)"
+          >
+            {{ subscription?.planCode === plan.code ? 'Current Plan' : 'Select Plan' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two Column Grid: Account Provisioning & Organizations List -->
+    <div class="two-col">
+      <section class="panel">
+        <h2 class="panel__title">Provision Organization Account</h2>
+        <form class="form" (ngSubmit)="provisionUser()">
+          <label>Username</label>
+          <input type="text" [(ngModel)]="acctUsername" name="acctUsername" placeholder="e.g. manager_ops" />
+          <label>Password</label>
+          <input type="password" [(ngModel)]="acctPassword" name="acctPassword" placeholder="••••••••" />
+          <label>Role</label>
+          <select [(ngModel)]="acctRole" name="acctRole">
+            <option value="MANAGER">MANAGER</option>
+            <option value="ADMIN">ADMIN</option>
+          </select>
+          <button type="submit" class="btn">Provision Account</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">Organizations Directory</h2>
+        <form class="inline-form" (ngSubmit)="createOrg()">
+          <input type="text" [(ngModel)]="newOrgName" name="newOrgName" placeholder="New organization name" />
+          <button type="submit" class="btn">Create</button>
+        </form>
+        <ul class="org-list">
+          <li *ngFor="let org of organizations">
+            <strong>{{ org.name }}</strong>
+            <span>{{ org.timezone }} · {{ org.active ? 'ACTIVE' : 'INACTIVE' }}</span>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</div>
