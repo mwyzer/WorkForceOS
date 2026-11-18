@@ -3,6 +3,7 @@ package com.workforceos.ai;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -29,6 +30,7 @@ public final class WorkforceLlmClient {
 
     private static final String DEFAULT_MUSE_MODEL = "muse";
     private static final String DEFAULT_SPARK_MODEL = "spark-1.3";
+    private static final String KEY_CONTENT = "content";
 
     public record ProviderSettings(String baseUrl, String model, String apiKey, int timeoutMs) {
 
@@ -69,16 +71,16 @@ public final class WorkforceLlmClient {
         if (!available()) {
             throw new IllegalStateException("LLM provider is not configured");
         }
-        ProviderSettings settings = active();
+        ProviderSettings settings = Objects.requireNonNull(active(), "LLM provider settings");
         String responseBody = restClient(settings).post()
                 .uri("/chat/completions")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                 .headers(headers -> {
                     if (!settings.apiKey().isBlank()) {
-                        headers.setBearerAuth(settings.apiKey());
+                        headers.setBearerAuth(Objects.requireNonNull(settings.apiKey(), "API key"));
                     }
                 })
-                .body(buildPayload(temperature, systemPrompt, userText))
+                .body(Objects.requireNonNull(buildPayload(temperature, systemPrompt, userText), "Request payload"))
                 .retrieve()
                 .body(String.class);
 
@@ -128,7 +130,7 @@ public final class WorkforceLlmClient {
         factory.setConnectTimeout(settings.timeoutMs());
         factory.setReadTimeout(settings.timeoutMs());
         return RestClient.builder()
-                .baseUrl(settings.baseUrl())
+                .baseUrl(Objects.requireNonNull(settings.baseUrl(), "Base URL"))
                 .requestFactory(factory)
                 .build();
     }
@@ -139,8 +141,8 @@ public final class WorkforceLlmClient {
             payload.put("model", model());
             payload.put("temperature", temperature);
             payload.put("messages", List.of(
-                    Map.of("role", "system", "content", systemPrompt),
-                    Map.of("role", "user", "content", userText)));
+                    Map.of("role", "system", KEY_CONTENT, systemPrompt),
+                    Map.of("role", "user", KEY_CONTENT, userText)));
             return mapper.writeValueAsString(payload);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to build LLM request payload", ex);
@@ -153,7 +155,7 @@ public final class WorkforceLlmClient {
                     .path("choices")
                     .path(0)
                     .path("message")
-                    .path("content")
+                    .path(KEY_CONTENT)
                     .asText();
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to parse LLM response", ex);

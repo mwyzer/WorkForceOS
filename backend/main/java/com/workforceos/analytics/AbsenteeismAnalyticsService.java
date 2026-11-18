@@ -1,13 +1,16 @@
 package com.workforceos.analytics;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,6 +40,14 @@ public class AbsenteeismAnalyticsService {
     private static final int MIN_WINDOW_DAYS = 1;
     private static final int MAX_WINDOW_DAYS = 365;
 
+    private static final String LEVEL_HIGH = "HIGH";
+    private static final String LEVEL_MEDIUM = "MEDIUM";
+    private static final String LEVEL_LOW = "LOW";
+
+    private static final String TREND_INCREASING = "INCREASING";
+    private static final String TREND_DECREASING = "DECREASING";
+    private static final String TREND_STABLE = "STABLE";
+
     private final EmployeeService employeeService;
     private final ScheduleEngine scheduleEngine;
     private final AttendanceEngine attendanceEngine;
@@ -53,12 +64,14 @@ public class AbsenteeismAnalyticsService {
         this.defaultWindowDays = defaultWindowDays;
     }
 
-    @Cacheable(value = "absenteeism-report", key = "T(com.workforceos.organization.TenantContext).require().toString()")
+    @Cacheable(
+            value = "absenteeism-report",
+            key = "T(com.workforceos.organization.TenantContext).require().toString() + ':' + (#windowDays != null ? #windowDays : 'default')")
     public AbsenteeismReport report(Integer windowDays) {
         int window = normalizeWindow(windowDays);
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.systemDefault());
         OffsetDateTime windowStart = now.minusDays(window);
-        OffsetDateTime midpoint = windowStart.plusDays(window / 2);
+        OffsetDateTime midpoint = windowStart.plusDays(window / 2L);
 
         Map<UUID, Employee> employeesById = employeeService.findAll().stream()
                 .collect(Collectors.toMap(Employee::id, employee -> employee));
@@ -99,8 +112,8 @@ public class AbsenteeismAnalyticsService {
                     .filter(assignment -> !attendedShifts.contains(key(assignment.employeeId(),
                             assignment.rosterId(), assignment.shiftTemplateId())))
                     .count();
-            long late = lateByEmployee.getOrDefault(employeeId, 0L);
-            long leaveDays = leaveDaysByEmployee.getOrDefault(employeeId, 0L);
+            long late = Objects.requireNonNullElse(lateByEmployee.get(employeeId), 0L);
+            long leaveDays = Objects.requireNonNullElse(leaveDaysByEmployee.get(employeeId), 0L);
 
             totalScheduled += scheduled;
             totalAbsent += absent;
@@ -132,12 +145,12 @@ public class AbsenteeismAnalyticsService {
                 .thenComparing(AbsenteeismInsight::employeeNumber,
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        long high = countByLevel(insights, "HIGH");
-        long medium = countByLevel(insights, "MEDIUM");
-        long low = countByLevel(insights, "LOW");
+        long high = countByLevel(insights, LEVEL_HIGH);
+        long medium = countByLevel(insights, LEVEL_MEDIUM);
+        long low = countByLevel(insights, LEVEL_LOW);
 
         return new AbsenteeismReport(
-                java.time.Instant.now(),
+                Instant.now(),
                 window,
                 high,
                 medium,
@@ -154,18 +167,18 @@ public class AbsenteeismAnalyticsService {
                 .filter(assignment -> !assignment.end().isBefore(midpoint))
                 .toList();
         if (firstHalf.isEmpty() || secondHalf.isEmpty()) {
-            return "STABLE";
+            return TREND_STABLE;
         }
         double firstRate = absenceRate(firstHalf, attendedShifts);
         double secondRate = absenceRate(secondHalf, attendedShifts);
         double delta = secondRate - firstRate;
         if (delta > 0.15) {
-            return "INCREASING";
+            return TREND_INCREASING;
         }
         if (delta < -0.15) {
-            return "DECREASING";
+            return TREND_DECREASING;
         }
-        return "STABLE";
+        return TREND_STABLE;
     }
 
     private double absenceRate(List<RosterAssignment> assignments, Set<String> attendedShifts) {
@@ -181,22 +194,22 @@ public class AbsenteeismAnalyticsService {
 
     private int score(double absenceRate, double lateRate, String trend) {
         int trendAdjustment = switch (trend) {
-            case "INCREASING" -> 10;
-            case "DECREASING" -> -5;
+            case TREND_INCREASING -> 10;
+            case TREND_DECREASING -> -5;
             default -> 0;
         };
         double raw = absenceRate * 140 + lateRate * 60 + trendAdjustment;
-        return (int) Math.round(Math.max(0, Math.min(100, raw)));
+        return (int) Math.round(Math.clamp(raw, 0, 100));
     }
 
     private String riskLevel(int score) {
         if (score >= 50) {
-            return "HIGH";
+            return LEVEL_HIGH;
         }
         if (score >= 25) {
-            return "MEDIUM";
+            return LEVEL_MEDIUM;
         }
-        return "LOW";
+        return LEVEL_LOW;
     }
 
     private List<String> drivers(double absenceRate, double lateRate, String trend, long leaveDays) {
@@ -209,7 +222,7 @@ public class AbsenteeismAnalyticsService {
         if (lateRate >= 0.20) {
             drivers.add("Frequent lateness " + percent(lateRate));
         }
-        if ("INCREASING".equals(trend)) {
+        if (TREND_INCREASING.equals(trend)) {
             drivers.add("Worsening absence trend");
         }
         if (leaveDays >= 3) {
@@ -230,7 +243,8 @@ public class AbsenteeismAnalyticsService {
                 continue;
             }
             long days = end.toEpochDay() - start.toEpochDay() + 1;
-            daysByEmployee.merge(request.employeeId(), days, Long::sum);
+            long current = Objects.requireNonNullElse(daysByEmployee.get(request.employeeId()), 0L);
+            daysByEmployee.put(request.employeeId(), current + days);
         }
         return daysByEmployee;
     }
@@ -241,7 +255,7 @@ public class AbsenteeismAnalyticsService {
 
     private int normalizeWindow(Integer windowDays) {
         int requested = windowDays == null ? defaultWindowDays : windowDays;
-        return Math.max(MIN_WINDOW_DAYS, Math.min(MAX_WINDOW_DAYS, requested));
+        return Math.clamp(requested, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS);
     }
 
     private static String key(UUID employeeId, UUID rosterId, UUID shiftTemplateId) {
