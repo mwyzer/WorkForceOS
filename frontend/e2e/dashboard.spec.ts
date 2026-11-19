@@ -6,6 +6,6 @@ test('home dashboard renders and saves a screenshot', async ({ page }) => {
   await page.goto('/');
 
   await expect(page.locator('.home__title')).toContainText('Workforce overview');
-  await expect(page.locator('.stat-card')).toBeVisible();
+  await expect(page.locator('.stat-card').first()).toBeVisible();
   await page.screenshot({ path: screenshotPath('dashboard.png'), fullPage: true });
 });

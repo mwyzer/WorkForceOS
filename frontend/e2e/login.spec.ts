@@ -28,6 +28,7 @@ test.describe('login', () => {
 
     await expect(page).toHaveURL('/');
     await expect(page.locator('.home__dashboard')).toBeVisible();
+    await page.screenshot({ path: screenshotPath('login-after-submit.png'), fullPage: true });
     await testInfo.attach('login-success', { path: screenshotPath('login-after-submit.png') });
   });
 });
